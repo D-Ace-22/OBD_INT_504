@@ -86,6 +86,7 @@
 
 
 
+
 void SYSTEM_Initialize(void)
 {
     PIN_MANAGER_Initialize();
@@ -97,6 +98,7 @@ void SYSTEM_Initialize(void)
     SYSTEM_CORCONModeOperatingSet(CORCON_MODE_PORVALUES);
     initDefaultAT();
     TMR1_Initialize();
+    initSYSTIM();
     ADC1_Initialize();
     PM_Initialize();
 }

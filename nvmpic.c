@@ -926,9 +926,10 @@ uint8_t restoreCustomConfigurationOBD(void) {
     g_obdConfig.levelChangeVoltage.isActive = 1;
     g_obdConfig.levelChangeVoltage.triggerLevel = 0.75;
     g_obdConfig.levelChangeVoltage.triggerTime = 750;
-
-
+    strcpy(g_obdConfig.descriptionString, "SCANTOOL.NET LLC");
+    strcpy(g_obdConfig.atiId, ELM327_VERSION_ID);
     g_obdOtpConfig.hardwareIdFlag = 0xff;
+    
     restoreDefaultProgrammableParametersOBD();
     updateCustomConfigurationOBD();
     return 0;
@@ -984,7 +985,7 @@ uint8_t loadOtpConfigurationOBD(void) {
         //printDEBUG(DAPPEND, "\t\t Power on cycle count[%dw]\n", g_obdOtpConfig.powerOnResetCount);
     }
     g_obdOtpConfig.powerOnResetCount++;
-    /* updateOtpConfigurationOBD(); */
+    updateOtpConfigurationOBD();
 
     return 0;
 }

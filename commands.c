@@ -15,6 +15,7 @@
 #include "mcc_generated_files/uart1.h"
 #include "mcc_generated_files/gpios.h"
 #include "mcc_generated_files/adc1.h"
+#include "delay.h"
 
 extern char ELM327_VERSION[32];
 char tempCommand[60];
@@ -25,10 +26,8 @@ unsigned long oldbaudrate = 9600;
 char TXbuffer[60];
 uint32_t BRError = 0;
 char receivedChar;
-char hardIDStr[16] = "STN2120 r1.0\0";
-char stiStr[16]    = "STN2120 v5.6.5\0";
 char stixStr[32]   = "STN2120 v5.6.5 [2020.10.14]\0";
-char serialStr[16] = "212010154303\0";
+uint8_t stsatiId[32];
 //bool argErrFlag = false;
 bool statusLEDs = true;
 uint32_t CANbaudrate = 0x00000000;
@@ -109,30 +108,147 @@ bool argAsciiErrCheck(char* command)
 }
 
 //function for processing ST commands
-void processSTCommand(char *command) {
+void processSTCommand(char *command) 
+{
     if  (strncmp(command, "STBRT", 5) == 0)
     {
-        
-        char *Uart1TimeoutStr = command + 5;  
-        if (argErrCheck(Uart1TimeoutStr))
+        char *stbrtStr = command + 5;
+        uint8_t stbrtLen = strlen(stbrtStr);
+        if (argErrCheck(stbrtStr))
+        {
+            UART1_Write('?');
+        }
+        else if (stbrtLen != 0)
+        {
+            uint32_t stbrt = strtoul(stbrtStr, NULL, 10);
+            if (stbrt > 0 && stbrt < 65536) 
+            {
+                g_obdInfo.uartTimeout = stbrt;
+                UART1_Write_String("OK");
+            }
+            else
+            {
+                UART1_Write('?');
+            }
+        }
+        else 
+        {
+            UART1_Write('?');
+        }
+    }
+    else if (strncmp(command, "STBR", 4) == 0 ) 
+    {
+        char *stbrStr = command + 4; 
+        if (argErrCheck(stbrStr))
         {
             UART1_Write('?');
         }
         else
         {
-        unsigned long Uart1Timeout = strtoul(Uart1TimeoutStr, NULL, 10);
-        if (Uart1Timeout > 0 && Uart1Timeout < 65536) 
+            g_obdInfo.uartBaudrateTmp = strtoul(stbrStr, NULL, 10);
+            if (g_obdInfo.uartBaudrateTmp > 38 && g_obdInfo.uartBaudrateTmp <= 10000000) 
+            {
+                BRError = UART1_GetBRdiff(g_obdInfo.uartBaudrateTmp);
+                if (BRError <= 3)
+                {
+                    UART1_Write_String("OK");
+                    delayMs(10);
+                    UART1_Initialize(g_obdInfo.uartBaudrateTmp);
+                    
+                    delayMs(75);
+                    
+                    UART1_Write_String(OBD_VERSION_ID);
+                    
+                    if(UART1_Read() == '\r')
+                    {
+                        g_obdInfo.uartBaudrate = g_obdInfo.uartBaudrateTmp;
+                        UART1_Write_String("OK");
+                    }
+                    else
+                    {
+                        UART1_Initialize(g_obdInfo.uartBaudrate);
+                    }
+                  
+                }
+                else
+                {
+                   UART1_Write('?');
+                }
+            }
+            else
+            {
+                UART1_Write('?');
+            }
+        }
+    }
+    else if (strncmp(command, "STSBR", 5) == 0) 
+    {
+        char *stsbrStr = command + 5; 
+        if (argErrCheck(stsbrStr))
         {
-            g_obdInfo.uartTimeout = Uart1Timeout;
-            UART1_Write('O');
-            UART1_Write('K');
+            UART1_Write('?');
+        }
+        else
+        {
+            g_obdInfo.uartBaudrateTmp = strtoul(stsbrStr, NULL, 10);
+            if (g_obdInfo.uartBaudrateTmp >= 38 && g_obdInfo.uartBaudrateTmp <= 10000000) 
+            {
+                BRError = UART1_GetBRdiff(g_obdInfo.uartBaudrateTmp);
+                if (BRError <= 3)
+                {
+                    UART1_Write_String("OK");
+                    delayMs(g_obdInfo.uartTimeout);
+                    UART1_Initialize(g_obdInfo.uartBaudrateTmp);
+                    g_obdInfo.uartBaudrate = g_obdInfo.uartBaudrateTmp;
+                }
+                else
+                {
+                    UART1_Write('?');
+                }       
+            }
+            else
+            {
+                UART1_Write('?');
+            }
+        }
+    }
+    else if (strncmp(command, "STUFC", 5) == 0) 
+    {
+        char *stufcStr = command + 5;
+        uint8_t stufcLen = strlen(stufcStr);
+        if (argErrCheck(stufcStr))
+        {
+            UART1_Write('?');
+        }
+        else if (stufcLen == 1)
+        {
+            uint32_t stufc = strtoul(stufcStr, NULL, 10);
+            if (stufc == 0) 
+            {
+                g_obdInfo.uartFlowControlFlag = 0;
+                UART1_Write_String("OK");
+            }
+            else if (stufc == 1)
+            {
+                g_obdInfo.uartFlowControlFlag = 1;
+                UART1_Write_String("OK");
+            }
+            else
+            {
+                UART1_Write('?');
+            }
         }
         else
         {
             UART1_Write('?');
         }
-        
-        }
+    }   
+    else if (strcmp(command, "STWBR") == 0)
+    {   
+        g_obdConfig.usartBaudrate = g_obdInfo.uartBaudrate;
+        g_obdConfig.atppConfig[0x0C][1] = 0xff;
+        updateCustomConfigurationOBD();            
+        UART1_Write_String("OK");     
     }
     else if(strcmp(command, "STSLCS") == 0){
         UART1_Write('O');
@@ -381,173 +497,79 @@ void processSTCommand(char *command) {
             UART1_Write('\n');
         }
     }
-    else if (strncmp(command, "STBR", 4) == 0 ) 
-    {
-        char *baudrateStr = command + 4; // Skip "STBR "
-        if (argErrCheck(baudrateStr))
-        {
-            UART1_Write('?');
-        }
-        else
-        {
-            baudrate = strtoul(baudrateStr, NULL, 10);
-            if (baudrate > 38 && baudrate <= 10000000) {
-                BRError = UART1_GetBRdiff(baudrate);
-                if (BRError <= 3)
-                {
-                    UART1_Write_String("OK\r");
-                    delay_ms(200);
-                    UART1_Initialize(baudrate);
-                    g_obdInfo.uartBaudrate = baudrate;
-                    delay_ms(200);
-                    UART1_Write_String("STN2120 v0.0.0");
-                    receivedChar = UART1_Read();
-                    if (receivedChar == '\r')
-                    {
-                        UART1_Write_String("\rOK");
-                        oldbaudrate = baudrate;
-                    }
-                    else
-                    {
-                        UART1_Initialize(oldbaudrate);
-                        g_obdInfo.uartBaudrate = oldbaudrate;
-                    }
-                }
-                else
-                {
-                   UART1_Write('?');
-                }
-              }
-            else
-            {
-                UART1_Write('?');
-            }
-        }
-    }
-    else if (strncmp(command, "STSBR", 5) == 0) {
-        char *Uart1TFBaudStr = command + 5; // Skip "STBR "
-        if (argErrCheck(Uart1TFBaudStr))
-        {
-            UART1_Write('?');
-        }
-        else
-        {
-            baudrate = strtoul(Uart1TFBaudStr, NULL, 10);
-            if (baudrate >= 38 && baudrate <= 10000000) 
-            {
-                BRError = UART1_GetBRdiff(baudrate);
-                if (BRError <= 3)
-                {
-                    UART1_Write('O');
-                    UART1_Write('K');
-                    UART1_Write('\r');
-                    if (getLFStatus())
-                    {
-                        UART1_Write('\n');
-                    }
-                    delay_ms(200);
-                    UART1_Initialize(baudrate);
-                    g_obdInfo.uartBaudrate = baudrate;
-                    delay_ms(200);
-                }
-                else
-                {
-                    UART1_Write('?');
-                }       
-            }
-            else
-            {
-                UART1_Write('?');
-            }
-        }
-    }
-    else if (strncmp(command, "STUFC", 5) == 0) {
-        char *stufcStr = command + 5; // Skip "STBR "
-        if (argErrCheck(stufcStr))
-        {
-            UART1_Write('?');
-        }
-        else
-        {
-          uint32_t stufc = strtoul(stufcStr, NULL, 10);
-          if (stufc == 0 || stufc == 1)
-          {
-            if (stufc == 0) 
-            {
-                UART1FlowCtrl = 0;
-                UART1_Write('O');
-                UART1_Write('K');
-            }
-            else if (stufc == 1)
-            {
-                UART1FlowCtrl = 1;
-                UART1_Write('O');
-                UART1_Write('K');
-            }
-          }
-          else
-          {
-              UART1_Write('?');
-          }
-        }
-    }
-    else if (strcmp(command, "STWBRP") == 0)
-    {   
-        uint32_t baudy = (uint32_t)g_obdConfig.usartBaudrate;
-        sprintf(TXbuffer,"%lu",baudy);
-        UART1_Write_String(TXbuffer);          
-        UART1_Write_String("OK");      
-    }
-    else if (strcmp(command, "STWBR") == 0)
-    {   
-        g_obdConfig.usartBaudrate = g_obdInfo.uartBaudrate;
-        g_obdConfig.atppConfig[0x0C][1] = 0xff;
-        updateCustomConfigurationOBD();            
-        UART1_Write('O');
-        UART1_Write('K');      
-    }
+    
     else if (strcmp(command, "STDI") == 0)
     {
         //Print device hardware ID string (e.g., ?OBDLink r1.7?)
-        UART1_Write_String(hardIDStr);
+        if (g_obdOtpConfig.hardwareIdFlag == 0)
+        {
+            UART1_Write_String(g_obdOtpConfig.hardwareId);
+        }
+        else
+        {
+            UART1_Write('?');
+        }
     }
     else if (strcmp(command, "STDICPO") == 0)
     {
         //Print POR (Power on Reset) count
+        sprintf(TXbuffer,"%lu",g_obdOtpConfig.powerOnResetCount);
+        UART1_Write_String(TXbuffer);
     }
     else if (strcmp(command, "STI") == 0)
     {
-        UART1_Write_String(stiStr);
+        UART1_Write_String(OBD_VERSION_ID);
     }
-    else if (strncmp(command, "STSATI", 6) == 0) {
-        char *atiStr = command + 6; 
-        if (argAsciiErrCheck(atiStr))
+    else if (strncmp(command, "STSATI", 6) == 0) 
+    {
+        char *stsatiStr = command + 6;
+        uint8_t atiLen = strlen(stsatiStr);
+        if (argAsciiErrCheck(stsatiStr))
         {
             UART1_Write('?');
         }
+        else if(atiLen > 0 && atiLen < 32)
+        {
+            strcpy(stsatiId, stsatiStr);
+            UART1_Write_String("OK");
+            g_obdInfo.atiIdFlag = 1;
+        }
         else
         {
-          //UART1_Write_String(atiStr);
-            writeToNVM("STSATI",atiStr);
+            UART1_Write('?');
         }
     }
     else if (strncmp(command, "STSDI", 5) == 0) 
     {
-        char *diStr = command + 5;
-        if (argAsciiErrCheck(diStr))
+        char *stsdiStr = command + 5;
+        uint8_t stsdiLen = strlen(stsdiStr); 
+        if (argAsciiErrCheck(stsdiStr))
         {
             UART1_Write('?');
         }
+        else if (stsdiLen != 0)
+        {
+            if (g_obdOtpConfig.hardwareIdFlag != 0x00) 
+            {
+                g_obdOtpConfig.hardwareIdFlag = 0x00;
+                strcpy(g_obdOtpConfig.hardwareId,stsdiStr);
+                updateOtpConfigurationOBD();
+                UART1_Write_String("OK");
+            }
+            else
+            {
+                UART1_Write('?');
+            }
+        }
         else
         {
-            writeToNVM("STSDI",diStr);
+            UART1_Write('?');
         }
-        
     }
     else if (strcmp(command, "STSN") == 0)  
     {
         //Print device serial number
-        UART1_Write_String(serialStr);
+        UART1_Write_String(OBD_DEFAULT_SERIAL_NUMBER);
         
     }
     
@@ -579,48 +601,50 @@ void processSTCommand(char *command) {
         calibrated using this command. Takes current voltage 
         with a maximum value of 65.534*/ 
         char *voltCalStr = command + 6;
+        uint8_t voltCalLen = strlen(voltCalStr);
+        uint32_t voltage_calibration = 12345;
+        uint32_t voltage_offset = 670;
         if (argAsciiErrCheck(voltCalStr))
         {
             UART1_Write('?');
         }
-        else
+        else if (voltCalLen > 0)
         {
-           uint32_t voltage_calibration = 12345;
-           uint32_t voltage_offset = 670;
            uint16_t value[2];
            uint16_t k;
            uint16_t p = 0;
            ParsedData voltCal = parseString(voltCalStr,',');
-           UART1_Write_String(voltCal.values[0]);
-           UART1_Write('\n');
-           UART1_Write_String(voltCal.values[1]);
-           UART1_Write('\n');
-           sprintf(TXbuffer,"%d",voltCal.count);
-           UART1_Write_String(TXbuffer);
-           UART1_Write('\n');
+//         UART1_Write_String("\r\nVal1:");
+//         UART1_Write_String(voltCal.values[0]);
+//         UART1_Write_String("\r\nVal2:");
+//         UART1_Write_String(voltCal.values[1]);
+//         UART1_Write_String("\r\n");
+//         sprintf(TXbuffer,"count:%u",voltCal.count);
+//         UART1_Write_String(TXbuffer);
+//         UART1_Write('\n');
            if(voltCal.count < 3)
            {
-                ParsedData voltCalArg1 = parseString(voltCal.values[0],'.');
-                
-                uint32_t Arg1Dec = strtoul(voltCalArg1.values[0], NULL, 10);
-                Arg1Dec = Arg1Dec * 1000;
-                voltage_calibration = Arg1Dec;
-                if(voltCalArg1.count == 2)
-                {   
-                    uint32_t Arg1Frac = strtoul(voltCalArg1.values[1], NULL, 10);
-                    uint32_t Arg1FracLen = strlen(voltCalArg1.values[1]);
-                    if(Arg1Frac < 10 && Arg1FracLen == 1 )
-                    {
-                        Arg1Frac *= 100;
+                    ParsedData voltCalArg1 = parseString(voltCal.values[0],'.');
+                    uint32_t Arg1Dec = strtoul(voltCalArg1.values[0], NULL, 10);
+                    Arg1Dec = Arg1Dec * 1000;
+                    voltage_calibration = Arg1Dec;
+                    if(voltCalArg1.count == 2)
+                    {   
+                        uint32_t Arg1Frac = strtoul(voltCalArg1.values[1], NULL, 10);
+                        uint32_t Arg1FracLen = strlen(voltCalArg1.values[1]);
+                        if(Arg1Frac < 10 && Arg1FracLen == 1 )
+                        {
+                            Arg1Frac *= 100;
+                        }
+                        else if(Arg1Frac < 100 && Arg1FracLen == 2)
+                        {
+                            Arg1Frac *= 10;
+                        }
+                        voltage_calibration = voltage_calibration + Arg1Frac;
                     }
-                    else if(Arg1Frac < 100 && Arg1FracLen == 2)
-                    {
-                        Arg1Frac *= 10;
-                    }
-                    voltage_calibration = voltage_calibration + Arg1Frac;
-                }
-                
-                ParsedData voltCalArg2 = parseString(voltCal.values[1],'.');
+                if(voltCal.count == 2)
+                {
+                    ParsedData voltCalArg2 = parseString(voltCal.values[1],'.');
                     uint32_t Arg2Dec = strtoul(voltCalArg2.values[0], NULL, 10);
                     Arg2Dec = Arg2Dec * 100;
                     voltage_offset = Arg2Dec;
@@ -628,66 +652,73 @@ void processSTCommand(char *command) {
                     {   
                         uint32_t Arg2Frac = strtoul(voltCalArg2.values[1], NULL, 10);
                         uint32_t Arg2FracLen = strlen(voltCalArg2.values[1]);
-                        if(Arg2Frac < 10)
+                        if(Arg2Frac < 10 && Arg2FracLen == 1)
                         {
                             Arg2Frac *= 10;
                         }
                         voltage_offset = voltage_offset + Arg2Frac;
                     } 
-            }  
-            
+                }
+            } 
             else
             {
                 UART1_Write('?');
             }
+            if(voltage_calibration > 0 && voltage_calibration < 65535) 
+            {
+                g_obdInfo.calibrationFlag = 0x00;
+                g_obdInfo.voltageCalibration = voltage_calibration;
+                g_obdInfo.voltageOffset = voltage_offset;
+                g_obdInfo.adcCalibration = ADC1_Get_Measurement();       
+                UART1_Write_String("OK"); 
+            }
+            else
+            {
+                UART1_Write('?');
+            }
+        }
+        else if (voltCalLen == 0)
+        {
             g_obdInfo.calibrationFlag = 0x00;
             g_obdInfo.voltageCalibration = voltage_calibration;
             g_obdInfo.voltageOffset = voltage_offset;
-            int atest = g_obdInfo.voltageCalibration;
-            int btest = g_obdInfo.voltageOffset;
-            g_obdInfo.adcCalibration = ADC1_Get_Measurement();
-            UART1_Write('\n');
-            sprintf(TXbuffer,"%d",atest);
-            UART1_Write_String(TXbuffer);
-            UART1_Write('\n');
-            sprintf(TXbuffer,"%d",btest);
-            UART1_Write_String(TXbuffer);
-            
-            UART1_Write_String("OK");   
-        }  
+            g_obdInfo.adcCalibration = ADC1_Get_Measurement();       
+            UART1_Write_String("OK");
+        }
+        
     }
     else if (strcmp(command, "STVRX") == 0) 
     {
         /*Read voltage in ADC steps. Returns the voltage on
          ANALOG_IN pin in ADC counts. The range is 0x000 
          (AVSS) to 0xFFF (AVDD)*/  
-         uint16_t adc = ADC1_Get_Measurement();
-         if (adc >= 0X000 && adc <= 0xFFF)
-         {
-            sprintf(TXbuffer,"%x",adc);
+        uint16_t adc = ADC1_Get_Measurement();
+        if (adc >= 0X000 && adc <= 0xFFF)
+        {
+            sprintf(TXbuffer,"0x%03X",adc);
             UART1_Write_String(TXbuffer);
-         }
-         else
-         {
-             UART1_Write('?');
-         }
+        }
+        else
+        {
+            UART1_Write('?');
+        }
     }
     else if (strncmp(command, "STVR", 4) == 0) 
     {
          /*Read voltage in volts. Returns calibrated voltage 
         measured by the ANALOG_IN pin.*/
-        char* precessionStr = command + 4; //0-3
-        if (argErrCheck(precessionStr))
+        char* stvrStr = command + 4;
+        uint8_t stvrLen = strlen(stvrStr);
+        if (argErrCheck(stvrStr))
         {
             UART1_Write('?');
         }
-        else
+        else if(stvrLen == 1)
         {
-           //readADCvolts(ADCvolts,precession);
             uint16_t adc = ADC1_Get_Measurement();
             uint16_t voltage = ((uint32_t)adc * g_obdInfo.voltageCalibration)/g_obdInfo.adcCalibration;
             uint16_t residue = voltage % 1000;
-            uint8_t precession = strtoul(precessionStr, NULL, 10);
+            uint8_t precession = strtoul(stvrStr, NULL, 10);
             if(precession == 0)
             {
                 precession = 0;
@@ -696,6 +727,7 @@ void processSTCommand(char *command) {
             {
                 precession = 1;
                 residue = residue / 100;
+               
             }
             else if(precession == 2)
             {
@@ -740,17 +772,51 @@ void processSTCommand(char *command) {
             else
             {
                 voltage = voltage / 1000;
-                if(precession != 0x00)
-                {
-                    sprintf(TXbuffer,"%d.%d",voltage,residue);
-                }
-                else
+                if(precession == 0)
                 {
                     sprintf(TXbuffer,"%d",voltage);
                 }
+                else if(precession == 1)
+                {
+                    sprintf(TXbuffer,"%d.%01d",voltage,residue);
+                }
+                else if(precession == 2)
+                {
+                    sprintf(TXbuffer,"%d.%02d",voltage,residue);
+                }
+                else if(precession == 3)
+                {
+                    sprintf(TXbuffer,"%d.%03d",voltage,residue);
+                }
+                else
+                {
+                    strcpy(TXbuffer,"?");
+                }
                 UART1_Write_String(TXbuffer);
             }   
-        } 
+        }
+        else if (stvrLen == 0)
+        {
+            uint16_t adc = ADC1_Get_Measurement();
+            uint16_t voltage = ((uint32_t)adc * g_obdInfo.voltageCalibration)/g_obdInfo.adcCalibration;
+            uint16_t residue = voltage % 1000;
+            residue = residue / 10;
+            
+            if(voltage > 65534)
+            {
+                UART1_Write_String("--.--");
+            }
+            else
+            {
+                voltage = voltage / 1000;
+                sprintf(TXbuffer,"%d.%02d",voltage,residue);
+                UART1_Write_String(TXbuffer);
+            }
+        }
+        else
+        {
+            UART1_Write('?');
+        }
     }
     ////////////////Table 15//////////////////////
     else if (strcmp(command, "STPBRR") == 0) 
@@ -1785,49 +1851,64 @@ void processSTCommand(char *command) {
     else if (strcmp(command, "STRSTNVM") == 0) 
     {
         //Reset NVM to factory defaults 
-        resetAllNVMToDefault();
+        restoreCustomConfigurationOBD();
+        UART1_Write_String("OK");
     }
     else if (strcmp(command, "STSAVCAL") == 0) 
     {
         //Save all calibration values
-        g_obdOtpConfig.calibrationFlag = 0x00;
-        g_obdOtpConfig.voltageCalibration = g_obdInfo.voltageCalibration;
-        g_obdOtpConfig.voltageOffset = g_obdInfo.voltageOffset;
-        g_obdOtpConfig.adcCalibration = g_obdInfo.adcCalibration;
-        //updateOtpConfigurationOBD();
+        if (g_obdInfo.calibrationFlag == 0x00 && g_obdOtpConfig.calibrationFlag != 0x00)
+        {
+            
+            g_obdOtpConfig.calibrationFlag    = 0x00;
+            g_obdOtpConfig.voltageCalibration = g_obdInfo.voltageCalibration;
+            g_obdOtpConfig.voltageOffset      = g_obdInfo.voltageOffset;
+            g_obdOtpConfig.adcCalibration     = g_obdInfo.adcCalibration;
+            UART1_Write_String("OK");
+            updateOtpConfigurationOBD();
+        }
+        else
+        {
+            UART1_Write('?');
+        }
     }
     else if (strncmp(command, "STUIL",5) == 0) 
     {
         //Disable/Enable LEDs
         //Default Enable
         char *stuilStr = command + 5; 
+        uint8_t stuilLen = strlen(stuilStr);
         if (argErrCheck(stuilStr))
         {
             UART1_Write('?');
         }
-        else
+        else if (stuilLen == 1)
         {
-          uint32_t stuil = strtoul(stuilStr, NULL, 10);
-          if (stuil == 0 || stuil == 1)
-          {
+            uint32_t stuil = strtoul(stuilStr, NULL, 10);
             if (stuil == 0) 
             {
-                statusLEDs = false;
-                UART1_Write('O');
-                UART1_Write('K');
+                setLED(LED_ID_STATUS, LED_STATE_OFF);
+                setLED(LED_ID_OBD, LED_STATE_OFF);
+                setLED(LED_ID_HOST, LED_STATE_OFF);
+                setStatusLED(LED_STATUS_OFF);
+                UART1_Write_String("OK");
             }
             else if (stuil == 1)
             {
-                statusLEDs = true;
-                UART1_Write('O');
-                UART1_Write('K');
+                setStatusLED(LED_STATUS_ON);
+                setLED(LED_ID_STATUS, LED_STATE_ON);
+                UART1_Write_String("OK");
             }
-          }
-          else
-          {
-              UART1_Write('?');
-          }
+            else
+            {
+                UART1_Write('?');
+            }
         }
+        else
+        {
+            UART1_Write('?');
+        }
+        
     }
     else if (strncmp(command, "STGPC",5) == 0) 
     {
@@ -2253,7 +2334,7 @@ void processATCommand(char *command)
     else if  (strcmp(command, "ATI") == 0)
     {
         //print ELM327 version ID string
-        UART1_Write_String(ELM327_VERSION_ID);
+        UART1_Write_String(g_obdConfig.atiId);
      
     }
     else if  (strncmp(command, "ATL", 3) == 0)
@@ -2303,6 +2384,12 @@ void processATCommand(char *command)
     else if  (strcmp(command, "ATZ") == 0)
     {
         //Reset device
+        if (g_obdInfo.atiIdFlag == 1)
+        {
+            strcpy(g_obdConfig.atiId, stsatiId);
+            updateCustomConfigurationOBD();
+        }
+        
         delay_ms(100);
         asm("reset");
     }
@@ -2469,6 +2556,14 @@ void processATCommand(char *command)
         */
         g_obdInfo.obdLongMessageState = OBD_LONG_MESSAGE_STATE_DISABLED;
         UART1_Write_String("OK");
+    }
+    else if (strcmp(command,"ATRTR") == 0)
+    {
+       /*Send an RTR (Remote Transmission Request) CAN frame.
+        * By default, OBDLink ignores (doesn?t print) RTR frames. To enable 
+        * printing of RTR frames, turn on the headers (ATH 1) or turn CAN formatting 
+        * off (ATCAF 0).*/
+        txRemoteCAN(g_obdInfo.canSid, g_obdInfo.canEid, g_obdInfo.canMode, g_obdInfo.obdTransmissionTimeout);
     }
     else if (strncmp(command, "ATR", 3) == 0)
     {
@@ -2853,7 +2948,7 @@ void processATCommand(char *command)
         uint8_t rxCnt;
         uint8_t txCnt;
         getErrorCountCAN(&rxCnt, &txCnt);
-        sprintf(TXbuffer, "T:%xb R:%xb\r", txCnt, rxCnt);
+        sprintf(TXbuffer, "T:%02X R:%02X\r", txCnt, rxCnt);
         UART1_Write_String(TXbuffer);
     }
     else if (strncmp(command, "ATFCSD", 6) == 0)
@@ -2902,8 +2997,9 @@ void processATCommand(char *command)
                             g_obdInfo.obdFlowcontrolData[n] = 0x00;
                         }
                     }
+                    g_obdInfo.obdFlowcontrolDataFlag = 1;
                     UART1_Write_String("OK");
-                } 
+                }        
         }
     }
     else if (strncmp(command, "ATFCSH", 6) == 0)
@@ -2925,6 +3021,7 @@ void processATCommand(char *command)
             {
                 uint32_t atfcshValue = strtoul(atfcshStr, NULL, 16);
                 g_obdInfo.obdFlowcontrolHeader = atfcshValue;
+                g_obdInfo.obdFlowcontrolHeaderFlag = 1;
                 UART1_Write_String("OK");
             }
             else
@@ -2953,12 +3050,12 @@ void processATCommand(char *command)
               g_obdInfo.obdFlowcontrolMode = OBD_CAN_FLOWCONTROL_MODE_AUTOMATIC;
               UART1_Write_String("OK");     
           }
-          else if (atfcsmValue == 1)
+          else if (atfcsmValue == 1 && g_obdInfo.obdFlowcontrolDataFlag == 1 && g_obdInfo.obdFlowcontrolHeaderFlag == 1)
           {
               g_obdInfo.obdFlowcontrolMode = OBD_CAN_FLOWCONTROL_MODE_USER_DEFINED_ID_DATA;
               UART1_Write_String("OK");
           }
-          else if (atfcsmValue == 2)
+          else if (atfcsmValue == 2 && g_obdInfo.obdFlowcontrolDataFlag == 1 && g_obdInfo.obdFlowcontrolHeaderFlag == 1)
           {
               g_obdInfo.obdFlowcontrolMode = OBD_CAN_FLOWCONTROL_MODE_AUTOMATIC_ID_USER_DATA;
               UART1_Write_String("OK");
@@ -3011,14 +3108,6 @@ void processATCommand(char *command)
         }
          
     }
-    else if (strncmp(command, "ATRTR", 5) == 0)
-    {
-       /*Send an RTR (Remote Transmission Request) CAN frame.
-        * By default, OBDLink ignores (doesn?t print) RTR frames. To enable 
-        * printing of RTR frames, turn on the headers (ATH 1) or turn CAN formatting 
-        * off (ATCAF 0).*/
-        
-    }
     else if (strncmp(command, "ATV", 3) == 0)
     {
        /*Variable DLC on or off. When one of the CAN protocols is selected, this 
@@ -3036,7 +3125,7 @@ void processATCommand(char *command)
           uint32_t atvValue = strtoul(atvStr, NULL, 10);
           if (atvValue == 0 ||  atvValue == 1 )
           {
-              g_obdInfo.obdCanVariableDlc = atvValue;
+              g_obdInfo.obdCanVariableDlc = atvValue; 
               UART1_Write_String("OK");     
           }
           else
@@ -3051,10 +3140,8 @@ void processATCommand(char *command)
     }
     else 
     {
-        UART1_Write('?');
-    }
-    
-    
+        UART1_Write('A');
+    } 
 }
 //function for processing OBD requests
 void processOBDRequest(char *command)
@@ -3079,20 +3166,6 @@ void loadDefaultOnWarmReset(void)
     
 }
 
-//function for setting NVM to default
-void resetAllNVMToDefault(void)
-{
-    //restore PPs
-    restoreDefaultPParameters();
-    //OBD protocol
-    //UART baud rate
-    //voltage calibration
-    //ATI device ID
-    //AT@1
-    //POWER Save configuration parameters
-    //continue
-    //not included AT@3,STSDI,STSAVCAL,ATSD
-}
 void obdRequestHandle(char *command)
 {
    // Length check (minimum 2 bytes for mode)

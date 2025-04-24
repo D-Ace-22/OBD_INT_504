@@ -1,18 +1,21 @@
 #include "delay.h"
 
 
-#define MS_TIME_OPERATOR 1000
+#define MS_TIME_OPERATOR 1
 
 volatile uint32_t gu32Jiffies1ms = 0;
 volatile uint32_t g_sysTimeCount = 0x00;
 void delayMs(uint32_t ms)
 {
-    uint32_t dt1 = (getSYSTIM()/MS_TIME_OPERATOR);
-    
-    while( ms < (getSYSTIM()/MS_TIME_OPERATOR - dt1)){
-        Nop();// asm("nop");
+    uint32_t timer = getSYSTIM();
+    uint8_t flag = 1;
+    while (flag == 1) 
+    {
+        if (chk4TimeoutSYSTIM(timer, ms) == SYSTIM_TIMEOUT) 
+        {   
+            flag = 0; 
+        }
     }
-    
 }
 
 void delayUs(uint32_t us)
@@ -26,16 +29,16 @@ void initSYSTIM(void)
     T3CONbits.TON = 0; // Disable Timer
     T3CONbits.TCS = 0; // Select internal instruction cycle clock
     T3CONbits.TGATE = 0; // Disable Gated Timer mode
-    T3CONbits.TCKPS = 0b01; // Select 1:1 Prescaler (??? => should be 1:8)
+    T3CONbits.TCKPS = 0b01; // Select 1:8 Prescaler
     TMR3 = 0x00; // Clear timer register
     //PR3 = 19999; // Load the period value
-    PR3 = 7500; 
+    PR3  = (TIMER_FREQ/8) / 1000; //2533; 
     IPC2bits.T3IP = 0x01; // Set Timer3 Interrupt Priority Level
     IFS0bits.T3IF = 0; // Clear Timer3 Interrupt Flag
     IEC0bits.T3IE = 1; // Enable Timer3 interrupt
     T3CONbits.TON = 1;
     
-    T2CONbits.TON = 1; // Start 16-bit Timer							
+    //T2CONbits.TON = 1; // Start 16-bit Timer							
 }
 
 void __attribute__((__interrupt__,auto_psv)) _T3Interrupt(void)

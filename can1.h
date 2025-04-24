@@ -116,6 +116,7 @@ extern volatile canRingBufferInfo_t g_canRingBufferInfo;
 #ifdef CAN_FUNCTIONS_INTERFACE
 void initCAN(void);
 uint8_t txMessageCAN(uint32_t sid, uint32_t eid, uint8_t mode, uint8_t * data, uint8_t size, uint16_t timeout);
+uint8_t txRemoteCAN(uint32_t sid, uint32_t eid, uint8_t mode, uint16_t timeout);
 void setBaudrateCAN(uint32_t baudrate);
 uint32_t getBaudrateCAN(void);
 uint8_t getMessageCAN(uint8_t * data);

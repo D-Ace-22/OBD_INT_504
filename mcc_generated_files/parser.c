@@ -1,22 +1,25 @@
 #include "parser.h"
+#include "uart1.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
-ParsedData parseString(const char *input, char delimeter) {
+ParsedData parseString(const char *input, char delimeter) 
+{
     ParsedData result;
     result.count = 0;
     
-    char *copy = strdup(input); // Make a copy of input because strtok modifies the string
-    char *token = strtok(copy, delimeter);
-    
-    while (token != NULL && result.count < MAX_ARGS) {
-        result.values[result.count] = strdup(token); // Store each token
+    char copy[30];
+    strcpy(copy,input); // Make a copy of input because strtok modifies the string
+    char *token = strtok(copy, &delimeter);
+    while (token != NULL && result.count < MAX_ARGS) 
+    {
+        strcpy(result.values[result.count],token); // Store each token
         result.count++;
-        token = strtok(NULL, delimeter);
+        token = strtok(NULL, &delimeter);
     }
     
-    free(copy); // Free the copied string
+    //free(copy); // Free the copied string
     return result;
 }
 
@@ -26,6 +29,15 @@ void freeParsedData(ParsedData *data) {
     }
 }
 
+char* my_strdup(const char* src) {
+    if (src == NULL) return NULL;
+    size_t len = strlen(src) + 1;
+    char* dst = malloc(len);
+    if (dst) {
+        memcpy(dst, src, len);
+    }
+    return dst;
+}
 //
 //#include <stdio.h>
 //#include "parser.h"

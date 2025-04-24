@@ -4,6 +4,7 @@
 #include <stdint.h> 
 #include <xc.h>
 
+#define TIMER_FREQ                     20262500UL
 #define SYSTIM_TIMEOUT							1
 #define SYSTIM_KEEP_ALIVE						0
  

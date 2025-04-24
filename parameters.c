@@ -26,6 +26,7 @@ char ELM327_VERSION[32];
 
 uint8_t loadDefaultConfigurationOBD(void) {
     g_obdInfo.uartTimeout = 1000; // actually it should be 75ms according spec - we use 1000 ms
+    g_obdInfo.uartFlowControlFlag = 1;
     g_obdInfo.echoState = 1;
     g_obdInfo.linefeedState = 0;
     g_obdInfo.formatProperties.ath = 0;
@@ -39,7 +40,7 @@ uint8_t loadDefaultConfigurationOBD(void) {
     g_obdInfo.formatProperties.printFrameNumber = 1;
     g_obdInfo.formatProperties.printFC = 1;
     
-
+    g_obdInfo.atiIdFlag = 0;
 
     g_obdInfo.canMode = CAN_MODE_STANDARD_DATA_FRAME_8_DLC;
     g_obdInfo.canSid = 0x07DF;
@@ -67,9 +68,10 @@ uint8_t loadDefaultConfigurationOBD(void) {
     g_obdInfo.obdCanTargetAddressExtension = 0;
     g_obdInfo.obdFlowcontrolMode = OBD_CAN_FLOWCONTROL_MODE_AUTOMATIC;
     g_obdInfo.obdFlowcontrolActive = 1;
+    g_obdInfo.obdFlowcontrolDataFlag = 0;
+    g_obdInfo.obdFlowcontrolHeaderFlag = 0;
+    g_obdInfo.obdTransmissionTimeout = 1000;
     
-    disableLF();
-    enableEcho();
     return 0;
 }
 

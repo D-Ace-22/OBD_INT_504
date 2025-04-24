@@ -1,4 +1,7 @@
 build/default/production/mcc_generated_files/parser.o: \
- mcc_generated_files/parser.c mcc_generated_files/parser.h
+ mcc_generated_files/parser.c mcc_generated_files/parser.h \
+ mcc_generated_files/uart1.h
 
 mcc_generated_files/parser.h:
+
+mcc_generated_files/uart1.h:

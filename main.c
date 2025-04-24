@@ -1,7 +1,7 @@
 /**
 * @file        main.h
 * @author      Aqib D. Ace 
-* @date        18 April 2025 7:22 PM
+* @date        24 April 2025 7:40 PM
 * @version     0.4.15
 */
 
@@ -30,7 +30,7 @@ int main(void)
 //    setBaudrateCAN(500000);
 //    configureFilterCAN(CAN_MODE_STANDARD_DATA_FRAME_8_DLC, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
     UART1_Write('\r');
-    UART1_Write_String(ELM327_VERSION_ID); ///ATI string received on connection
+    UART1_Write_String(g_obdConfig.atiId); ///ATI string received on connection
     UART1_Write('\r');
     //restoreDefaultPParameters();
     //writeToNVM("STS@1","SCANTOOL.NET LLC");

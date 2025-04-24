@@ -30,6 +30,7 @@
       <itemPath>mcc_generated_files/gpios.h</itemPath>
       <itemPath>can1.h</itemPath>
       <itemPath>delay.h</itemPath>
+      <itemPath>led.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -69,6 +70,7 @@
       <itemPath>mcc_generated_files/gpios.c</itemPath>
       <itemPath>can1.c</itemPath>
       <itemPath>delay.c</itemPath>
+      <itemPath>led.c</itemPath>
     </logicalFolder>
   </logicalFolder>
   <sourceRootList>
@@ -258,6 +260,7 @@
         <property key="event.recorder.debugger.behavior" value="Running"/>
         <property key="event.recorder.enabled" value="false"/>
         <property key="event.recorder.scvd.files" value=""/>
+        <property key="firmware.download.all" value="false"/>
         <property key="lastid" value=""/>
         <property key="memories.configurationmemory" value="true"/>
         <property key="memories.dataflash" value="true"/>

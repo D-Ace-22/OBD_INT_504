@@ -28,7 +28,7 @@ uint8_t loadDefaultConfigurationOBD(void);
 
 #define ELM327_VERSION_ID                       "ELM327 v1.4b"
 #define OBD_VERSION_ID                          "STN2120 v5.6.5"
-#define OBD_DEFAULT_SERIAL_NUMBER               "110012345678"
+#define OBD_DEFAULT_SERIAL_NUMBER               "212010154303"
 
 
 ///////////////////
@@ -181,6 +181,7 @@ typedef struct /*obd_module_t*/
     uint32_t timer;
     uint32_t uartBaudrate;
     uint32_t uartBaudrateTmp;
+    uint8_t uartFlowControlFlag;
     uint8_t echoState;
     uint8_t linefeedState;
     uint16_t uartTimeout;
@@ -216,6 +217,7 @@ typedef struct /*obd_module_t*/
     uint8_t wakeReason:4;
 
     uint8_t calibrationFlag;
+    uint8_t atiIdFlag;
     uint32_t voltageCalibration;
     uint32_t voltageOffset;
     uint16_t adcCalibration;
@@ -252,6 +254,9 @@ typedef struct /*obd_module_t*/
     uint32_t obdFlowcontrolHeader;
     uint8_t obdFlowcontrolMode;
     uint8_t obdFlowcontrolActive;
+    uint8_t obdFlowcontrolDataFlag;
+    uint8_t obdFlowcontrolHeaderFlag;
+    
     uint8_t protocolbSettings;
     uint8_t protocolbBaudrate;
 

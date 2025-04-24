@@ -13,6 +13,7 @@
 #include "parser.h"
 #include "../PM.h"
 #include "gpios.h"
+#include "../led.h"
 
 #ifndef SYSTEM_H
 #define	SYSTEM_H

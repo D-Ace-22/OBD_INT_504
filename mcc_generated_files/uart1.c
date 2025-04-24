@@ -1,6 +1,8 @@
 #include <xc.h>
 #include "uart1.h"
 #include "../PM.h"
+#include "../led.h"
+#include "../parameters.h"
 #include "tmr1.h"
 
 #define FUART  20267500UL  
@@ -54,26 +56,30 @@ uint32_t UART1_GetBRdiff(uint32_t brate)
 
 uint8_t UART1_Read(void)
 {
-    if(PM_Get_Inactivity_trig()){
+    TMR1_SoftwareCounterClear();
+    if(PM_Get_Inactivity_trig())
+    {
         uint16_t Inactivity_limit = PM_Get_Inactivity_time()*1000;
         TMR1_Start();
         bool alerted = false;
         while(!(U1STAbits.URXDA == 1)&&(TMR1_SoftwareCounterGet() < Inactivity_limit))
         {
-            if((TMR1_SoftwareCounterGet() - Inactivity_limit < 60000) && UART_ALERT && !alerted){
+            if((TMR1_SoftwareCounterGet() - Inactivity_limit < 60000) && UART_ALERT && !alerted)
+            {
                 UART1_Write_String("\nACT ALERT");
                 alerted = true;
             }
         }
         TMR1_Stop();
-        if(TMR1_SoftwareCounterGet() >= Inactivity_limit){
+        if(TMR1_SoftwareCounterGet() >= Inactivity_limit)
+        {
             PM_Set_Sleep("UART", 0);
         }
         TMR1_SoftwareCounterClear();
     }
     else
     {
-        while(!(U1STAbits.URXDA == 1))
+        while(!(U1STAbits.URXDA == 1)); //&& (TMR1_SoftwareCounterGet() < g_obdInfo.uartTimeout))
         {
             PM_Manage_Power();
         }
@@ -88,11 +94,13 @@ uint8_t UART1_Read(void)
 }
 void UART1_ReadString(char *buffer, uint16_t maxLength)
 {
+    
     uint16_t i = 0;
     while (i < (maxLength - 1)) // Leave space for null terminator
     {
         
         buffer[i] = UART1_Read(); // Read the character
+        setLED(LED_ID_HOST,LED_STATE_ON);
         //check Echo status adjustable by ATE
         if(getEchoStatus())
         {
@@ -152,6 +160,7 @@ void UART1_Write(uint8_t txData)
 
 void UART1_Write_String(const char *str)
 {
+    setLED(LED_ID_HOST,LED_STATE_ON);
     while (*str != '\0') // Loop until the null terminator
     {
         while (U1STAbits.UTXBF == 1) // Wait if the transmit buffer is full
@@ -161,6 +170,7 @@ void UART1_Write_String(const char *str)
         U1TXREG = *str; // Send the current character
         str++; // Move to the next character
     }
+    setLED(LED_ID_HOST,LED_STATE_OFF);
 }
 
 bool UART1_IsRxReady(void)

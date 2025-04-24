@@ -702,13 +702,13 @@ uint8_t txMessageCAN(uint32_t sid, uint32_t eid, uint8_t mode, uint8_t data[], u
 //
 //    }
     //printDEBUG(DAPPEND, "\n");
-    uint32_t timer = getSYSTIM();
-    //while(C1TR01CONbits.TXREQ0 == 1) // While transmission request bit is set
-    while ((C1TR01CONbits.TXREQ0 == 1) && (chk4TimeoutSYSTIM(timer, timeout) != SYSTIM_TIMEOUT)) // While transmission request bit is set  
+   uint32_t timer = getSYSTIM();
+    
+    while (C1TR01CONbits.TXREQ0 == 1) // While transmission request bit is set  
     {
         if (chk4TimeoutSYSTIM(timer, timeout) == SYSTIM_TIMEOUT) 
-        {
-            C1TR01CONbits.TXREQ0 = 0x0; // Clear the transmission request bit.
+        {   
+            C1TR01CONbits.TXREQ0 = 0x0; // Clear the transmission request bit
             return 1; // Return 1 to indicate a timeout occurred.
         }
     }
@@ -718,6 +718,74 @@ uint8_t txMessageCAN(uint32_t sid, uint32_t eid, uint8_t mode, uint8_t data[], u
 }
 ////////////////
 
+////////////////
+// Function to send a Remote Frame.
+uint8_t txRemoteCAN(uint32_t sid, uint32_t eid, uint8_t mode, uint16_t timeout) 
+{
+    switch (mode) 
+    {    //IDE is Dominant (Logical ?0?)
+         //RTR is Recessive (Logical ?1?)
+         //RB0 is Dominant (Logical ?0?)
+        case(CAN_MODE_STANDARD_DATA_FRAME_VAR_DLC):
+        {
+            ecan1MsgBuf[0][0] = (sid << 2);
+            ecan1MsgBuf[0][1] = 0x0000;
+            ecan1MsgBuf[0][2] = 0x0208;//0000 0010 0000 1000
+            break;
+        }
+        //IDE is Recessive (Logical ?1?)
+        //SRR is Recessive (Logical ?1?)
+        //RTR is Recessive (Logical ?1?)
+        //RB0 is Dominant (Logical ?0?)
+        //RB1 is Dominant (Logical ?0?)
+        case(CAN_MODE_EXTENDED_DATA_FRAME_VAR_DLC):
+        {
+            sid = (eid >> 16) & 0xfffC;
+            eid = eid & 0x3ffff;            
+            ecan1MsgBuf[0][0] = (sid) | 0x11;
+            ecan1MsgBuf[0][1] =  eid >> 6;
+            ecan1MsgBuf[0][2] = ((eid & 0x3f) << 10) | 0x208; 
+            break;
+        }
+        case(CAN_MODE_STANDARD_DATA_FRAME_8_DLC):
+        {
+            ecan1MsgBuf[0][0] = (sid << 2);
+            ecan1MsgBuf[0][1] = 0x0000;
+            ecan1MsgBuf[0][2] = 0x0208;
+            break;
+        }
+        case(CAN_MODE_EXTENDED_DATA_FRAME_8_DLC):
+        {
+            sid = (eid >> 16) & 0xfffC;
+            eid = eid & 0x3ffff;            
+            ecan1MsgBuf[0][0] = (sid) | 0x11;
+            ecan1MsgBuf[0][1] = eid >> 6;
+            ecan1MsgBuf[0][2] = ((eid & 0x3f) << 10) | 0x208;
+            break;
+
+        }
+
+
+    }
+    
+    ecan1MsgBuf[0][3] = 0x0000;
+    ecan1MsgBuf[0][4] = 0x0000;
+    ecan1MsgBuf[0][5] = 0x0000;
+    ecan1MsgBuf[0][6] = 0x0000;
+    C1TR01CONbits.TXREQ0 = 0x1;
+    uint32_t timer = getSYSTIM();
+    
+    while (C1TR01CONbits.TXREQ0 == 1) // While transmission request bit is set  
+    {
+        if (chk4TimeoutSYSTIM(timer, timeout) == SYSTIM_TIMEOUT) 
+        {   
+            C1TR01CONbits.TXREQ0 = 0x0; // Clear the transmission request bit
+            return 1; // Return 1 to indicate a timeout occurred.
+        }
+    }
+    return 0;
+}
+///////////////////
 
 
 
@@ -784,7 +852,16 @@ void canTransmit(uint8_t data[], uint8_t len)
     C1TR01CONbits.TXREQ0 = 1;
     /* The following shows an example of how the TXREQ bit can be polled to check if transmission
     is complete. */
-    while(C1TR01CONbits.TXREQ0 == 1);
+    uint32_t timer = getSYSTIM();
+    
+    while (C1TR01CONbits.TXREQ0 == 1) // While transmission request bit is set  
+    {
+        if (chk4TimeoutSYSTIM(timer, 1000) == SYSTIM_TIMEOUT) 
+        {   
+            C1TR01CONbits.TXREQ0 = 0x0; // Clear the transmission request bit
+            return 1; // Return 1 to indicate a timeout occurred.
+        }
+    }
 }
 
 bool canReceive(uint8_t mode, uint8_t *data, uint8_t *datalen, uint16_t timeout)
@@ -845,7 +922,7 @@ bool canReceive(uint8_t mode, uint8_t *data, uint8_t *datalen, uint16_t timeout)
 //        /* Message was received. */
     uint32_t timer = getSYSTIM();
     //while(C1TR01CONbits.TXREQ0 == 1) // While transmission request bit is set
-    while ((C1RXFUL1bits.RXFUL10 == 0) && (chk4TimeoutSYSTIM(timer, timeout) != SYSTIM_TIMEOUT)) // While transmission request bit is set  
+    while ((C1RXFUL1bits.RXFUL10 == 0)) // While transmission request bit is set  
     {
         if (chk4TimeoutSYSTIM(timer, timeout) == SYSTIM_TIMEOUT) {
             C1RXFUL1bits.RXFUL10 = 0; // Clear the transmission request bit.
