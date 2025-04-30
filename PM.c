@@ -18,6 +18,7 @@
 #include "mcc_generated_files/tmr1.h"
 #include "mcc_generated_files/adc1.h"
 #include "parameters.h"
+#include "commands.h"
 
 // Section of functions
 
@@ -85,42 +86,44 @@ void PM_Initialize(){
     }
 }
 
-void PM_LCS(){
-    char line[40], subline[5], symbols[3]="";
-    snprintf(line, 40, "\nCTRL MODE: %s", CTRL_MODE);
+void PM_STSLCS(){
+    char line[40] = "", subline[10] = "", symbols[10] = "";
+    snprintf(line, 40, "CTRL MODE:  %s", CTRL_MODE);
     UART1_Write_String(line);
-    snprintf(line, 40, "\nPWR_CTRL: LOW POWER = %s", PWR_CTRL?"HIGH":"LOW");
+    snprintf(line, 40, "PWR_CTRL:   LOW POWER = %s", PWR_CTRL?"HIGH":"LOW");
     UART1_Write_String(line);
-    snprintf(line, 40, "\nUART SLEEP: %s, %d s", UART_SLEEP?"ON":"OFF", UART_SLEEP_TIM);
+    snprintf(line, 40, "UART SLEEP: %s,  %d s", UART_SLEEP?"ON":"OFF", UART_SLEEP_TIM);
     UART1_Write_String(line);
-    snprintf(line, 40, "\nUART WAKE: %s, %d-%d us", UART_WAKE?"ON":"OFF", UART_WAKE_TIM_L, UART_WAKE_TIM_H);
+    snprintf(line, 40, "UART WAKE:  %s,  %d-%d us", UART_WAKE?"ON":"OFF", UART_WAKE_TIM_L, UART_WAKE_TIM_H);
     UART1_Write_String(line);
-    snprintf(line, 40, "\nEXT INPUT: %s = SLEEP", EXT_INPUT?"HIGH":"LOW");
+    snprintf(line, 40, "EXT INPUT:  %s = SLEEP", EXT_INPUT?"HIGH":"LOW");
     UART1_Write_String(line);
-    snprintf(line, 40, "\nEXT SLEEP: %s, %s FOR %d ms", EXT_SLEEP? "ON": "OFF", STSLXP_VAL? "HIGH": "LOW", EXT_SLEEP_TIM);
+    snprintf(line, 40, "EXT SLEEP:  %s, %s FOR %d ms", EXT_SLEEP? "ON": "OFF", STSLXP_VAL? "HIGH": "LOW", EXT_SLEEP_TIM);
     UART1_Write_String(line);
-    snprintf(line, 40, "\nEXT WAKE: %s, %s FOR %d ms", EXT_WAKE? "ON": "OFF", STSLXP_VAL? "LOW": "HIGH", EXT_WAKE_TIM);
+    snprintf(line, 40, "EXT WAKE:   %s, %s FOR %d ms", EXT_WAKE? "ON": "OFF", STSLXP_VAL? "LOW": "HIGH", EXT_WAKE_TIM);
     UART1_Write_String(line);
+    symbols[0] = VL_SLEEP_SYMBOL;
     if(VL_SLEEP_CONVERT){
-        sprintf(subline, "%.2f", VL_SLEEP_VOLT);
-        symbols[0] = VL_SLEEP_SYMBOL;
+        snprintf(subline, 10, "%.2f", VL_SLEEP_VOLT);
         symbols[1] = PM_Is_Voltage_Valid(VL_SLEEP_VOLT)?'\0':'!';
     }else{
-        sprintf(subline, "%#X", VL_SLEEP_STEPS);
-        symbols[0]='\0';
+        snprintf(subline, 10, "%#X", VL_SLEEP_STEPS);
+        symbols[1]='\0';
     }
-    snprintf(line, 40, "\nVL SLEEP: %s, %s%sV FOR %d s", VL_SLEEP?"ON":"OFF", symbols, subline, VL_SLEEP_TIM);
+    snprintf(line, 40, "VL SLEEP:   %s, %s%sV FOR %d s", VL_SLEEP?"ON":"OFF", symbols, subline, VL_SLEEP_TIM);
     UART1_Write_String(line);
+    subline[0]='\0';
+    symbols[0] = VL_WAKE_SYMBOL;
     if(VL_WAKE_CONVERT){
-        sprintf(subline, "%.2f", VL_WAKE_VOLT);
-        symbols[0] = VL_WAKE_SYMBOL;
+        snprintf(subline, 10, "%.2f", VL_WAKE_VOLT);
         symbols[1] = PM_Is_Voltage_Valid(VL_WAKE_VOLT)?'\0':'!';
     }else{
-        sprintf(subline, "%#X", VL_WAKE_STEPS);
-        symbols[0]='\0';
+        snprintf(subline, 10, "%#X", VL_WAKE_STEPS);
+        symbols[1]='\0';
     }
-    snprintf(line, 40, "\nVL WAKE: %s, %s%sV FOR %d s", VL_WAKE?"ON":"OFF", symbols, subline, VL_WAKE_TIM);
+    snprintf(line, 40, "VL WAKE:    %s, %s%sV FOR %d s", VL_WAKE?"ON":"OFF", symbols, subline, VL_WAKE_TIM);
     UART1_Write_String(line);
+    subline[0]='\0';
     uint8_t ind = 0;
     switch(VCHG_SYMBOL){
         case '+':
@@ -131,14 +134,14 @@ void PM_LCS(){
             symbols[0]='\0';
     }
     if(VCHG_CONVERT){
-        sprintf(subline, "%.2f", VCHG_WAKE_VOLT);
+        snprintf(subline, 10, "%.2f", VCHG_WAKE_VOLT);
         symbols[ind] = PM_Is_Voltage_Valid(VCHG_WAKE_VOLT)?'\0':'!';
         symbols[ind+1]='\0';
     }else{
-        sprintf(subline, "%#X", VCHG_WAKE_STEPS);
+        snprintf(subline, 10, "%#X", VCHG_WAKE_STEPS);
         symbols[ind] = '\0';
     }
-    snprintf(line, 40, "\nVCHG WAKE: %s, %s%sV IN %d ms", VCHG_WAKE?"ON":"OFF", symbols, subline, VCHG_WAKE_TIM);
+    snprintf(line, 40, "VCHG WAKE:  %s, %s%sV IN %d ms", VCHG_WAKE?"ON":"OFF", symbols, subline, VCHG_WAKE_TIM);
     UART1_Write_String(line);
 }
 
@@ -153,30 +156,11 @@ void PM_Manage_Power(){
     
 }
 
-void PM_Set_Sleep(char* cause, uint16_t delay){
-    if(strcmp(cause, "CMD")==0 || strcmp(cause, "UART")==0 || strcmp(cause, "VL")==0 || strcmp(cause, "EXT")==0){
-        TMR1_Start();
-        while(TMR1_SoftwareCounterGet() < delay);
-        UART1_Write_String("\r\nELM327 v1.4b");
-        while(!UART1_IsTxDone());
-        PORTBbits.RB14 = 0; // Set LED_STATUS pin as low. 
-        PM_Sleep();
-        strcpy(LAST_SLEEP_TRIG, cause);
-    }
-}
-
-void PM_Sleep(){
-    TMR1_Start();
-    if(UART_WAKE)CNENBbits.CNIEB6 = 1;              //set CNEN interrupt on RX pin if UART Wake trigger is enabled.
-    if(VL_WAKE || VCHG_WAKE)ADC1_Begin_Converting();   //begin an ADC conversion 
-    __builtin_pwrsav(0);
-    TMR1_Stop();
-    TMR1_SoftwareCounterClear();
-}
-
 void PM_STSLLT(){
     char line[30];
-    sprintf(line, "\nSLEEP: %s\nWAKE: %s", LAST_SLEEP_TRIG, LAST_WAKE_TRIG);
+    sprintf(line, "SLEEP: %s", LAST_SLEEP_TRIG);
+    UART1_Write_String(line);
+    sprintf(line, "WAKE:  %s", LAST_WAKE_TRIG);
     UART1_Write_String(line);
 }
 
@@ -198,7 +182,7 @@ void PM_STSLVG(bool trig){
 void PM_STSLVL(bool sleep, bool wakeup){
     VL_SLEEP = PM_Is_Voltage_Valid(VL_SLEEP_VOLT)? sleep: false;
     VL_WAKE = PM_Is_Voltage_Valid(VL_WAKE_VOLT)? wakeup: false;
-    if(VL_SLEEP || VL_WAKE){
+    if(VL_SLEEP){
         ADC1_Enable();
     }
 }
@@ -229,9 +213,15 @@ void PM_STSLX(bool sleep, bool wake){
 }
 
 void PM_STSLVLS(char symbol, int steps, uint16_t time){
+    VL_SLEEP_CONVERT = false;
     VL_SLEEP_SYMBOL = symbol;
     VL_SLEEP_STEPS = steps;
     VL_SLEEP_TIM = time;
+}
+
+void PM_STSLVLS_Set_Volt(float volt){
+    VL_SLEEP_CONVERT = true;
+    VL_SLEEP_VOLT = volt;
 }
 
 void PM_STSLVLW(char symbol, int steps, uint16_t time){
@@ -240,15 +230,25 @@ void PM_STSLVLW(char symbol, int steps, uint16_t time){
     VL_WAKE_TIM = time;
 }
 
+void PM_STSLVLW_Set_Volt(float volt){
+    VL_WAKE_VOLT = volt;
+}
+
 void PM_STSLVGW(char symbol, int steps, uint16_t time){
     uint16_t newTime = time/250;
     newTime*=250;
+    VCHG_CONVERT = false;
     if((newTime + 250 - time < time - newTime)||(newTime == 0)){
         newTime = newTime+250;
     }
     VCHG_WAKE_STEPS = steps;
     VCHG_SYMBOL = symbol;
     VCHG_WAKE_TIM = newTime;
+}
+
+void PM_STSLVGW_Set_Volt(float volt){
+    VCHG_CONVERT = true;
+    VCHG_WAKE_VOLT = volt;
 }
 
 bool PM_Is_Voltage_Valid(float volt){
@@ -263,10 +263,38 @@ uint16_t PM_Get_Inactivity_time(){
     return UART_SLEEP_TIM;
 }
 
+void PM_Set_Sleep(char* cause, uint16_t delay){
+    if(strcmp(cause, "CMD")==0 || strcmp(cause, "UART")==0 || strcmp(cause, "VL")==0 || strcmp(cause, "EXT")==0){
+        if(delay > 0){
+            TMR1_SoftwareCounterClear();
+            TMR1_Start();
+            while(TMR1_SoftwareCounterGet() < delay);
+            TMR1_Stop();
+        }
+        while(!UART1_IsTxDone()); //Wait for any UART transmissions to complete
+        PORTBbits.RB14 = 0; // Set LED_STATUS pin as low. 
+        PM_Sleep();
+        strcpy(LAST_SLEEP_TRIG, cause);
+    }
+}
+
+void PM_Sleep(){
+    TMR1_Start();
+    if(UART_WAKE)CNENBbits.CNIEB6 = 1;              //set CNEN interrupt on RX pin if UART Wake trigger is enabled.
+    if(VL_WAKE || VCHG_WAKE){
+        ADC1_Enable();
+        ADC1_Begin_Converting();   //begin an ADC conversion 
+    }
+    __builtin_pwrsav(0);
+    TMR1_Stop();
+    TMR1_SoftwareCounterClear();
+}
+
 void PM_Set_Wake_Trig(char* trig){
     if(strcmp(trig, "UART")==0 || strcmp(trig, "EXT")==0 || strcmp(trig, "VCHG")==0 || strcmp(trig, "VL")==0){
         strcpy(LAST_WAKE_TRIG, trig);
     }
+    loadDefaultOnWarmReset(); //Perform ATWS reset
 }
 
 bool PM_Check_Reset_Recent_Sleep(){;
@@ -380,7 +408,7 @@ void __attribute__((interrupt, no_auto_psv)) _CNInterrupt(void)
     }
     
     if(PM_Check_Reset_Recent_Sleep()){
-        if(EXT_WAKE){
+        if(EXT_WAKE && PORTCbits.RC2 == 1){
             while(PORTCbits.RC2 == 1){
                 TMR1_Start();
                 if(TMR1_SoftwareCounterGet()>=EXT_WAKE_TIM){

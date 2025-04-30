@@ -71,7 +71,7 @@ uint8_t loadDefaultConfigurationOBD(void) {
     g_obdInfo.obdFlowcontrolDataFlag = 0;
     g_obdInfo.obdFlowcontrolHeaderFlag = 0;
     g_obdInfo.obdTransmissionTimeout = 1000;
-    
+    strcpy(g_obdInfo.powerControlMode,"NATIVE");
     return 0;
 }
 
@@ -159,5 +159,28 @@ uint8_t getProtocol(void)
 {
     return g_obdConfig.protocol;
 }
+
+void SetCanPin(uint8_t protocol)
+{
+    if (protocol == CAN_SPEED_MODE_HIGH_500K || protocol == CAN_SPEED_MODE_HIGH_250K)
+    {
+        __builtin_write_OSCCONL(OSCCON & 0xbf); //unlock PPS
+
+            RPOR6bits.RP57R = 0x000E;    //RC9->ECAN1:C1TX
+            RPINR26bits.C1RXR = 0x0060;    //RF0->ECAN1:C1RX
+
+        __builtin_write_OSCCONL(OSCCON | 0x40); //lock PPS
+    }
+    else if (protocol == CAN_SPEED_MODE_MEDIUM_125K)
+    {
+        __builtin_write_OSCCONL(OSCCON & 0xbf); //unlock PPS
+
+            RPOR6bits.RP57R = 0x000E;    //RC9->ECAN1:C1TX
+            RPINR26bits.C1RXR = 0x0060;    //RF0->ECAN1:C1RX
+
+        __builtin_write_OSCCONL(OSCCON | 0x40); //lock PPS
+    }
+}
+
 
 

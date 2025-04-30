@@ -75,20 +75,16 @@ void __attribute__ ( (interrupt, no_auto_psv) ) _AD1Interrupt( void )
 {
     IFS0bits.AD1IF = 0;             // Clear the ADC1 Interrupt Flag
     if(PM_Check_Reset_Recent_Sleep()){
-        if(VL_WAKE){
-            if(PM_Check_VL_WAKE){
-                PM_Set_Wake_Trig("VL");
-                return;
-            }else{
-                PM_Sleep();
-            }
-        }
         if(VCHG_WAKE){
             if(PM_Check_VCHG()){
                 PM_Set_Wake_Trig("VCHG");
                 return;
-            }else{
-                PM_Sleep();
+            }
+        }
+        if(VL_WAKE){
+            if(PM_Check_VL_WAKE()){
+                PM_Set_Wake_Trig("VL");
+                return;
             }
         }
         PM_Sleep();

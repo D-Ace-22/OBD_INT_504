@@ -3,13 +3,21 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/mcc_generated_files/system.h</file>
-            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/main.c</file>
+            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/mcc_generated_files/adc1.c</file>
             <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/parameters.h</file>
-            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/mcc_generated_files/parser.h</file>
-            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/commands.c</file>
-            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/mcc_generated_files/parser.c</file>
+            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/mcc_generated_files/adc1.h</file>
+            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/can1.c</file>
+            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/PM.h</file>
+            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/parameters.c</file>
             <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/mcc_generated_files/system.c</file>
+            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/mcc_generated_files/tmr1.h</file>
+            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/PM.c</file>
+            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/main.c</file>
+            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/mcc_generated_files/tmr1.c</file>
+            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/mcc_generated_files/uart1.h</file>
+            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/commands.c</file>
+            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/mcc_generated_files/gpios.c</file>
+            <file>file:/D:/ECLEVER/Aqib/AQ_OBD.X/mcc_generated_files/uart1.c</file>
         </group>
     </open-files>
 </project-private>

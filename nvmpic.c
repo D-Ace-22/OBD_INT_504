@@ -140,37 +140,34 @@ void writeToNVM(char* command, char* argument)
 void printPParameters(void)
 {
     char TXbuf[30];
-    for (int i = 0 ; i < OBD_ATPP_CONFIG_SIZE ;i++)
+    for (int i = 0 ; i < OBD_ATPP_CONFIG_SIZE/4 ;i++)
     {
-        sprintf(TXbuf,"%02X:%02X %c " ,i, g_obdConfig.atppConfig[i][0],(g_obdConfig.atppConfig[i][1] == 0 ? 'N' : 'F')) ;
-        delay2_ms(10);
-        UART1_Write_String(TXbuf);   
-        if ((i+1)%4==0 && i!=47)
+        sprintf(TXbuf,"%02X:%02X %c  " ,(i*4)+0, g_obdConfig.atppConfig[(i*4)+0][0],(g_obdConfig.atppConfig[(i*4)+0][1] == 0 ? 'N' : 'F')) ;
+
+        UART1_Write_String1(TXbuf);
+        sprintf(TXbuf,"%02X:%02X %c  " ,(i*4)+1, g_obdConfig.atppConfig[(i*4)+1][0],(g_obdConfig.atppConfig[(i*4)+1][1] == 0 ? 'N' : 'F')) ;
+ 
+        UART1_Write_String1(TXbuf);
+        sprintf(TXbuf,"%02X:%02X %c  " ,(i*4)+2, g_obdConfig.atppConfig[(i*4)+2][0],(g_obdConfig.atppConfig[(i*4)+2][1] == 0 ? 'N' : 'F')) ;
+ 
+        UART1_Write_String1(TXbuf);
+        sprintf(TXbuf,"%02X:%02X %c"   ,(i*4)+3, g_obdConfig.atppConfig[(i*4)+3][0],(g_obdConfig.atppConfig[(i*4)+3][1] == 0 ? 'N' : 'F')) ;
+
+        UART1_Write_String1(TXbuf);
+        UART1_Write('\r');
+        if(getLFStatus())
         {
-            UART1_Write('\r');
-            if(getLFStatus())
-            {
-                UART1_Write('\n');
-            }
-        
+            UART1_Write('\n');
         }
+        
     }
-    
-    // Stop if the read data does not match the write data;
-//    if ( (write_data[0] != read_data[0]) ||
-//         (write_data[1] != read_data[1]) ||
-//         (write_data[2] != read_data[2]) ||
-//         (write_data[3] != read_data[3]) )
-//    {
-//        MiscompareError();    
-//    }
 }
 
 void initNVM(void)
 {
     loadDefaultConfigurationOBD();
     loadCustomConfigurationOBD(PROGRAMMABLE_PARAMETERS_TYPE_P);
-    loadOtpConfigurationOBD(); //TODO:
+    loadOtpConfigurationOBD(); 
 
     g_obdInfo.calibrationFlag = 0xff;
     if (g_obdOtpConfig.calibrationFlag != 0xff) 
@@ -586,8 +583,8 @@ uint8_t updateCustomConfigurationOBD(void)
 uint8_t loadCustomConfigurationOBD(uint8_t reason) {
     uint16_t k = 0;
     getAddress();
-    if (reason == PROGRAMMABLE_PARAMETERS_TYPE_P) 
-    {
+//    if (reason == PROGRAMMABLE_PARAMETERS_TYPE_P) 
+//    {
         uint32_t baddr = flash_storage_address;
         uint32_t tmp = 0;
         uint16_t size = sizeof (obdConfig_t);
@@ -639,7 +636,7 @@ uint8_t loadCustomConfigurationOBD(uint8_t reason) {
             //printDEBUG(DOBD | DWARNING, "Restore custom configuration to default\n");
             restoreCustomConfigurationOBD();
         }
-    }
+//    }
     for (k = 0; k < OBD_ATPP_CONFIG_SIZE; k++) {
         switch (k) { // TODO implement
             case(0x00): // Perform ATMA after power up or reset
@@ -659,7 +656,6 @@ uint8_t loadCustomConfigurationOBD(uint8_t reason) {
             case(0x03):
             {
                 g_obdInfo.obdRequestTimeout = g_obdConfig.atppConfig[k][0] * 4.096;
-                //printDEBUG(DSYS | DWARNING, "Set OBD request timeout [%d]\n", g_obdInfo.obdRequestTimeout);
                 break;
             }
             case(0x04):
@@ -905,13 +901,14 @@ uint8_t restoreCustomConfigurationOBD(void) {
     g_obdConfig.usartBaudrate = DEFAULT_UART_BAUDRATE;
 
 
-    g_obdConfig.wakeUartMinPulse = 0; // in ms = 20 minutes (20*60*1000)
-    g_obdConfig.wakeUartMaxPulse = 30000; // in ms = 20 minutes (20*60*1000)
+    g_obdConfig.wakeUartMinPulse = 0;  
+    g_obdConfig.wakeUartMaxPulse = 30; 
 
-    g_obdConfig.sleepUartFlags = OBD_SLEEP_CONFIG_FLAGS_UART_WAKE_BIT | OBD_SLEEP_CONFIG_FLAGS_UART_INACTIVITY_BIT;
+    g_obdConfig.sleepUartFlags = OBD_SLEEP_CONFIG_FLAGS_UART_WAKE_BIT;
     //g_obdConfig.sleepUartFlags = OBD_SLEEP_CONFIG_FLAGS_UART_WAKE_BIT ;
-    //    g_obdConfig.sleepPeriod = 1200000; // in ms = 20 minutes (20*60*1000)
-    g_obdConfig.sleepPeriod = 600l*1000l; // in ms = 20 minutes (20*60*1000)
+    g_obdConfig.uartInactivityPeriod = 1200000; // in ms = 20 minutes (20*60*1000)
+    
+    //g_obdConfig.uartInactivityPeriod = 600l*1000l; // in ms = 20 minutes (20*60*1000)
     g_obdConfig.sleepVoltage.sign = '<';
     g_obdConfig.sleepVoltage.isActive = 0;
     g_obdConfig.sleepVoltage.triggerLevel = 13.0;
@@ -929,7 +926,12 @@ uint8_t restoreCustomConfigurationOBD(void) {
     strcpy(g_obdConfig.descriptionString, "SCANTOOL.NET LLC");
     strcpy(g_obdConfig.atiId, ELM327_VERSION_ID);
     g_obdOtpConfig.hardwareIdFlag = 0xff;
-    
+    g_obdConfig.pwrCtrlPinPolarity = 0x00; // Active LOW
+    g_obdConfig.extSleepPinPolarity = 0x00;
+    g_obdConfig.extSleepSleep = 0x00;
+    g_obdConfig.extSleepWake = 0xff;
+    g_obdConfig.extSleepInactivityTime = 3000;
+    g_obdConfig.extSleepWakeTime = 2000;
     restoreDefaultProgrammableParametersOBD();
     updateCustomConfigurationOBD();
     return 0;

@@ -23,7 +23,6 @@ unsigned long UART1_Timeout;
 uint8_t UART1FlowCtrl = 1;
 unsigned long baudrate = 9600;
 unsigned long oldbaudrate = 9600;
-char TXbuffer[60];
 uint32_t BRError = 0;
 char receivedChar;
 char stixStr[32]   = "STN2120 v5.6.5 [2020.10.14]\0";
@@ -67,14 +66,13 @@ void processCommand(char *command)
         }
         else
         {
-            UART1_Write('?');   //wrong command error
+            UART1_Write_String("?");   //wrong command error
         }
-        UART1_Write('\r'); //return carriage return to host
+        UART1_Write('\r');
         //check Line Feed controlled by ATL
         if (getLFStatus())
         {
             UART1_Write('\n');  //if line feed is on send line feed
-            UART1_Write('\n');
         }
         UART1_Write('>'); //send prompt for next command
 }
@@ -116,7 +114,7 @@ void processSTCommand(char *command)
         uint8_t stbrtLen = strlen(stbrtStr);
         if (argErrCheck(stbrtStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (stbrtLen != 0)
         {
@@ -128,12 +126,12 @@ void processSTCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
         else 
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if (strncmp(command, "STBR", 4) == 0 ) 
@@ -141,7 +139,7 @@ void processSTCommand(char *command)
         char *stbrStr = command + 4; 
         if (argErrCheck(stbrStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -172,12 +170,12 @@ void processSTCommand(char *command)
                 }
                 else
                 {
-                   UART1_Write('?');
+                   UART1_Write_String("?");
                 }
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
     }
@@ -186,7 +184,7 @@ void processSTCommand(char *command)
         char *stsbrStr = command + 5; 
         if (argErrCheck(stsbrStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -203,12 +201,12 @@ void processSTCommand(char *command)
                 }
                 else
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }       
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
     }
@@ -218,7 +216,7 @@ void processSTCommand(char *command)
         uint8_t stufcLen = strlen(stufcStr);
         if (argErrCheck(stufcStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (stufcLen == 1)
         {
@@ -235,12 +233,12 @@ void processSTCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }   
     else if (strcmp(command, "STWBR") == 0)
@@ -250,129 +248,182 @@ void processSTCommand(char *command)
         updateCustomConfigurationOBD();            
         UART1_Write_String("OK");     
     }
-    else if(strcmp(command, "STSLCS") == 0){
-        UART1_Write('O');
-        UART1_Write('K');
-        UART1_Write('\n');
-        PM_LCS();
+    else if(strcmp(command, "STSLCS") == 0)
+    {
+        PM_STSLCS();
     }
     else if(strcmp(command, "STSLLT") == 0){
-        UART1_Write('O');
-        UART1_Write('K');
-        UART1_Write('\n');
         PM_STSLLT();
     }
-    else if(strncmp(command, "STSLEEP", 7) == 0){
-        UART1_Write('O');
-        UART1_Write('K');
-        UART1_Write('\n');
-        char val1[20];
-        uint16_t index = 7, num;
-        for(index; command[index] != '\0' && command[index] != ','; index++){
-            val1[index-7] = command[index];
+    else if(strncmp(command, "STSLEEP", 7) == 0)
+    {
+        char *stsleepStr = command + 7;
+        uint8_t stsleepLen = strlen(stsleepStr);
+        if (argErrCheck(stsleepStr))
+        {
+            UART1_Write_String("?");
         }
-        num = strtoul(val1, NULL, 10);
-        PM_Set_Sleep("CMD", 65536>num>=0?num:0);
+        else if (stsleepLen > 0)
+        {
+            uint32_t stsleep = strtoul(stsleepStr, NULL, 10);
+            if(stsleep >= 0 && stsleep < 65536)
+            {
+                UART1_Write_String("OK");
+                PM_Set_Sleep("CMD", stsleep); 
+            }
+            else
+            {
+                UART1_Write_String("?");
+            }
+        }
+        else if (stsleepLen == 0)
+        {
+            UART1_Write_String("OK");
+            PM_Set_Sleep("CMD", 0);   
+        }
     }
     else if(strncmp(command, "STSLXP", 6) == 0){
         if(command[6] == '0'||command[6] == '1'){
-            UART1_Write('O');
-            UART1_Write('K');
-            UART1_Write('\n');
+            UART1_Write_String("OK");
             PM_STSLXP(command[6]=='1'?true:false);
         }else{
             UART1_Write("?");
         }
     }
-    else if(strncmp(command, "STSLPCP", 7) == 0){
-        if(command[7]=='0'||command[7]=='1'){
-            UART1_Write('O');
-            UART1_Write('K');
-            UART1_Write('\n');
-            PM_STSLPCP(command[7]=='1'?true:false);
-        }else{
-            UART1_Write('?');
-            UART1_Write('\n');
+    else if(strncmp(command, "STSLPCP", 7) == 0)
+    {
+        char *stslpcpStr = command + 7;
+        uint8_t stslpcpLen = strlen(stslpcpStr);
+        if (argErrCheck(stslpcpStr))
+        {
+            UART1_Write_String("?");
         }
+        else if (stslpcpLen == 1)
+        {
+            uint32_t stslpcp = strtoul(stslpcpStr, NULL, 10);
+            if(stslpcp==0||stslpcp==1){
+            UART1_Write_String("OK");
+            PM_STSLPCP(stslpcp==1?true:false); //TODO
+            }else{
+                UART1_Write_String("?");
+            }
+        }
+        else
+        {
+            UART1_Write_String("?");
+        } 
     }
     else if(strncmp(command, "STSLUIT", 7) == 0){
-        char val1[10]="";
-        uint16_t index = 7;
-        for(index; command[index] != '\0'; index++){
-            val1[index-7] = command[index];
+        
+        char *stsluitStr = command + 7;
+        uint8_t stsluitLen = strlen(stsluitStr);
+        if (argErrCheck(stsluitStr))
+        {
+            UART1_Write_String("?");
         }
-        uint16_t num = strtoul(val1, NULL, 10);
-        if(num>=0 || num<65536){
-            UART1_Write('O');
-            UART1_Write('K');
-            UART1_Write('\n');
-            PM_STSLUIT(num);
-        }else{
-            UART1_Write('?');
-            UART1_Write('\n');
+        else if (stsluitLen > 0)
+        {
+            uint32_t stsluit = strtoul(stsluitStr, NULL, 10);
+            if(stsluit>=5 && stsluit<65536){
+            UART1_Write_String("OK");
+            PM_STSLUIT(stsluit);//TODO
+            }else{
+                UART1_Write_String("?");
+            }
         }
+        else
+        {
+            UART1_Write_String("?");
+        }
+        
+        
+        
+        
     }
     else if(strncmp(command, "STSLUWP", 7) == 0){
-        char val1[10]="", val2[10]="";
-        uint16_t index = 7;
-        for(index; command[index] != '\0' && command[index] != ','; index++){
-            val1[index-7] = command[index];
+        
+        char *stsluwpStr = command + 7;
+        uint8_t stsluwpLen = strlen(stsluwpStr);
+        if (argAsciiErrCheck(stsluwpStr))
+        {
+            UART1_Write_String("?");
         }
-        for(uint16_t index2 = index + 1; command[index2] != '\0'; index2++){
-            val2[index2-index-1] = command[index2];
+        else if (stsluwpLen > 0)
+        { 
+            ParsedData stsluwp = parseString(stsluwpStr,',');
+            if(stsluwp.count == 2)
+            {
+                uint16_t num1 = strtoul(stsluwp.values[0], NULL, 10);
+                uint16_t num2 = strtoul(stsluwp.values[1], NULL, 10);
+                if((num1 >= 0 && num1 < 65535) && (num2 >= 0 && num2 < 65535))
+                {
+                    UART1_Write_String("OK");
+                    PM_STSLUWP(num1, num2);
+                }
+                else
+                {
+                     UART1_Write_String("?");
+                }
+            }
+            else
+            {
+                UART1_Write_String("?");
+            }
         }
-        uint16_t num1 = strtoul(val1, NULL, 10), num2 = strtoul(val2, NULL, 10);
-        if((num1 >= 0 && num1 < 65536)&&(num2 >= 0 && num2 < 65536)){
-            UART1_Write('O');
-            UART1_Write('K');
-            UART1_Write('\n');
-            PM_STSLUWP(num1, num2);
-        }
-        else{
-            UART1_Write('?');
-            UART1_Write('\n');
+        else
+        {
+            UART1_Write_String("?");
         }
     }
     else if(strncmp(command, "STSLVGW", 7) == 0){
-        char val1[10]="", val2[10]="", symbol;
-        uint16_t index = 7;
-        switch(command[index]){
-            case '+':
-            case '-':
-                symbol = command[8];
-                index++;
-                break;
-            default:
-                symbol = '=';
+        char *stslvgwStr = command + 7;
+        uint8_t stslvgwLen = strlen(stslvgwStr);
+        ParsedData stslvgw = parseString(stslvgwStr,',');
+        if (argAsciiErrCheck(stslvgwStr))
+        {
+            UART1_Write_String("?");
         }
-        if(command[index+1]=='X'){
-            VCHG_CONVERT = false;
-            index+=2;
+        else if (stslvgwLen > 0 && stslvgw.count == 2)
+        {
+            char val1[10]="", val2[10]="", symbol;
+            uint16_t initial_index = 7, index = initial_index, steps = 1;
+            bool convert = command[index+1]!='X';
+            switch(command[index]){
+                case '+':
+                case '-':
+                    symbol = command[8];
+                    index++;
+                    break;
+                default:
+                    symbol = '='; // = -> both - and +
+            }
+            if(convert){
+                steps = ADC_Step ; // to convert voltage to steps
+            }else{
+                initial_index+=2; // skip over 0x
+            }
+            for(index = initial_index; command[index] != ','; index++){
+                val1[index-initial_index] = command[index];
+            }
+            for(uint16_t index2 = index + 1; command[index2] != '\0'; index2++){
+                val2[index2-index-1] = command[index2];
+            }
+            steps *= strtoul(val1, NULL, 16);
+            uint16_t num2 = strtoul(val2, NULL, 10);
+            if((steps >= 0 && steps < 4095)&&(num2 >= 0 && num2 < 65536)){
+                UART1_Write_String("OK");
+                PM_STSLVGW(symbol, steps, num2);
+                if(convert){
+                    PM_STSLVGW_Set_Volt(strtof(val1, NULL));
+                }
+            }
+            else{
+                UART1_Write_String("?");
+            }
         }
-        else{
-            VCHG_CONVERT = true;
-        }
-        for(index; command[index] != '\0' && command[index] != ','; index++){
-            val1[index-7] = command[index];
-        }
-        for(uint16_t index2 = index + 1; command[index2] != '\0'; index2++){
-            val2[index2-index-1] = command[index2];
-        }
-        int steps = strtoul(val1, NULL, 16);
-        if(VCHG_CONVERT = true){
-            VCHG_WAKE_VOLT = strtof(val1, NULL);
-            steps *= ADC_Step;
-        }
-        uint16_t num2 = strtoul(val2, NULL, 10);
-        if((steps >= 0 && steps < 4095)&&(num2 >= 0 && num2 < 65536)){
-            UART1_Write('O');
-            UART1_Write('K');
-            UART1_Write('\n');
-            PM_STSLVGW(symbol, steps, num2);
-        }
-        else{
-            UART1_Write('?');
-            UART1_Write('\n');
+        else
+        {
+           UART1_Write_String("?"); 
         }
     }
     else if(strncmp(command, "STSLVG", 6) == 0){
@@ -381,81 +432,68 @@ void processSTCommand(char *command)
         for(index; command[index] != '\0'; index++){
             val1[index-6] = command[index];
         }
-        if(strncmp(val1, "ON", 2)==0||strncmp(val1, "OFF", 3)==0){
-            UART1_Write('O');
-            UART1_Write('K');
-            UART1_Write('\n');
+        if(strcmp(val1, "ON")==0 || strcmp(val1, "OFF")==0){
+            UART1_Write_String("OK");
             PM_STSLVG(strncmp(val1, "ON", 2)==0?true:false);
         }
         else{
-            UART1_Write('?');
-            UART1_Write('\n');
+            UART1_Write_String("?");
         }
     }
     else if(strncmp(command, "STSLVLS", 7) == 0){
         char val1[10]="", val2[10]="";
-        uint16_t index = 8;
-        if(command[index+1]=='X'){
-            VL_SLEEP_CONVERT = false;
-            index+=2;
+        uint16_t initial_index = 8, index = initial_index, steps = 1;
+        bool convert = command[index+1]!='X';
+        if(convert){
+            steps = ADC_Step; // to convert voltage to steps
+        }else{
+            initial_index+=2; // skip over 0x
         }
-        else{
-            VL_SLEEP_CONVERT = true;
-        }
-        for(index; command[index] != '\0' && command[index] != ','; index++){
-            val1[index-8] = command[index];
+        for(index = initial_index; command[index] != '\0' && command[index] != ','; index++){
+            val1[index-initial_index] = command[index];
         }
         for(uint16_t index2 = index + 1; command[index2] != '\0'; index2++){
             val2[index2-index-1] = command[index2];
         }
-        int steps = strtoul(val1, NULL, 16);
-        if(VL_SLEEP_CONVERT = true){
-            VL_SLEEP_VOLT = strtof(val1, NULL);
-            steps *= ADC_Step;
-        }
+        steps *= strtoul(val1, NULL, 16);
         uint16_t time = strtoul(val2, NULL, 10);
         if((steps >= 0 && steps < 4095)&&(time > 0 && time < 65536)&&(command[7] == '>' || command[7] == '<')){
-            UART1_Write('O');
-            UART1_Write('K');
-            UART1_Write('\n');
+            UART1_Write_String("OK");
             PM_STSLVLS(command[7], steps, time);
+            if(convert){
+                PM_STSLVLS_Set_Volt(strtof(val1, NULL));
+            }
         }
         else{
-            UART1_Write('?');
-            UART1_Write('\n');
+            UART1_Write_String("?");
         }
     }
     else if(strncmp(command, "STSLVLW", 7) == 0){
         char val1[10]="", val2[10]="";
-        uint16_t index = 8;
-        if(command[index+1]=='X'){
-            VL_WAKE_CONVERT = false;
-            index+=2;
+        uint16_t initial_index = 8, index = initial_index, steps = 1;
+        bool convert = command[index+1]!='X';
+        if(convert){
+            steps = ADC_Step; // to convert voltage to steps
+        }else{
+            initial_index+=2; // skip over 0x
         }
-        else{
-            VL_WAKE_CONVERT = true;
-        }
-        for(index; command[index] != '\0' && command[index] != ','; index++){
+        for(index = initial_index; command[index] != '\0' && command[index] != ','; index++){
             val1[index-8] = command[index];
         }
         for(uint16_t index2 = index + 1; command[index2] != '\0'; index2++){
             val2[index2-index-1] = command[index2];
         }
-        int steps = strtoul(val1, NULL, 16);
-        if(VL_WAKE_CONVERT = true){
-            VL_WAKE_VOLT = strtof(val1, NULL);
-            steps *= ADC_Step;
-        }
+        steps *= strtoul(val1, NULL, 16);
         uint16_t time = strtoul(val2, NULL, 10);
         if((steps >= 0 && steps <= 4095)&&(time > 0 && time < 65536)&&(command[7] == '>' || command[7] == '<')){
-            UART1_Write('O');
-            UART1_Write('K');
-            UART1_Write('\n');
+            UART1_Write_String("OK");
             PM_STSLVLW(command[7], steps, time);
+            if(convert){
+                PM_STSLVLW_Set_Volt(strtof(val1, NULL));
+            }
         }
         else{
-            UART1_Write('?');
-            UART1_Write('\n');
+            UART1_Write_String("?");
         }
     }
     else if(strncmp(command, "STSLVL", 6) == 0){
@@ -467,18 +505,16 @@ void processSTCommand(char *command)
         for(uint16_t index2 = index + 1; command[index2] != '\0'; index2++){
             val2[index2-index-1] = command[index2];
         }
-        if((strncmp(val1, "ON", 2)==0||strncmp(val1, "OFF", 3)==0)&&(strncmp(val2, "ON", 2)==0||strncmp(val2, "OFF", 3)==0)){
-            UART1_Write('O');
-            UART1_Write('K');
-            UART1_Write('\n');
-            PM_STSLVL(strncmp(val1, "ON", 2)==0?true:false, strncmp(val2, "ON", 2)==0?true:false);
+        if((strcmp(val1, "ON")==0||strcmp(val1, "OFF")==0)&&(strcmp(val2, "ON")==0||strcmp(val2, "OFF")==0)){
+            UART1_Write_String("OK");
+            PM_STSLVL(strcmp(val1, "ON")==0?true:false, strcmp(val2, "ON")==0?true:false);
         }
         else{
-            UART1_Write('?');
-            UART1_Write('\n');
+            UART1_Write_String("?");
         }
     }
     else if(strncmp(command, "STSLU", 5) == 0){
+        
         char val1[10]="", val2[10]="";
         uint16_t index = 5;
         for(index; command[index] != '\0' && command[index] != ','; index++){
@@ -487,14 +523,11 @@ void processSTCommand(char *command)
         for(uint16_t index2 = index + 1; command[index2] != '\0'; index2++){
             val2[index2-index-1] = command[index2];
         }
-        if((strncmp(val1, "ON", 2)==0||strncmp(val1, "OFF", 3)==0)&&(strncmp(val2, "ON", 2)==0||strncmp(val2, "OFF", 3)==0)){
-            UART1_Write('O');
-            UART1_Write('K');
-            UART1_Write('\n');
-            PM_STSLU(strncmp(val1, "ON", 2)==0?true:false, strncmp(val2, "ON", 2)==0?true:false);
+        if((strcmp(val1, "ON")==0||strcmp(val1, "OFF")==0)&&(strcmp(val2, "ON")==0||strcmp(val2, "OFF")==0)){
+            UART1_Write_String("OK");
+            PM_STSLU(strcmp(val1, "ON")==0?true:false, strcmp(val2, "ON")==0?true:false);
         }else{
-            UART1_Write('?');
-            UART1_Write('\n');
+            UART1_Write_String("?");
         }
     }
     
@@ -507,7 +540,7 @@ void processSTCommand(char *command)
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if (strcmp(command, "STDICPO") == 0)
@@ -526,7 +559,7 @@ void processSTCommand(char *command)
         uint8_t atiLen = strlen(stsatiStr);
         if (argAsciiErrCheck(stsatiStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if(atiLen > 0 && atiLen < 32)
         {
@@ -536,7 +569,7 @@ void processSTCommand(char *command)
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if (strncmp(command, "STSDI", 5) == 0) 
@@ -545,7 +578,7 @@ void processSTCommand(char *command)
         uint8_t stsdiLen = strlen(stsdiStr); 
         if (argAsciiErrCheck(stsdiStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (stsdiLen != 0)
         {
@@ -558,12 +591,12 @@ void processSTCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if (strcmp(command, "STSN") == 0)  
@@ -580,7 +613,7 @@ void processSTCommand(char *command)
         uint8_t stsat1Len =strlen(stsat1Str);
         if (argAsciiErrCheck(stsat1Str))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (stsat1Len > 0)
         {
@@ -591,7 +624,7 @@ void processSTCommand(char *command)
         }     
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if (strncmp(command, "STVCAL",6) == 0) 
@@ -606,7 +639,7 @@ void processSTCommand(char *command)
         uint32_t voltage_offset = 670;
         if (argAsciiErrCheck(voltCalStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (voltCalLen > 0)
         {
@@ -662,7 +695,7 @@ void processSTCommand(char *command)
             } 
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
             if(voltage_calibration > 0 && voltage_calibration < 65535) 
             {
@@ -674,7 +707,7 @@ void processSTCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
         else if (voltCalLen == 0)
@@ -700,7 +733,7 @@ void processSTCommand(char *command)
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if (strncmp(command, "STVR", 4) == 0) 
@@ -711,7 +744,7 @@ void processSTCommand(char *command)
         uint8_t stvrLen = strlen(stvrStr);
         if (argErrCheck(stvrStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if(stvrLen == 1)
         {
@@ -815,7 +848,7 @@ void processSTCommand(char *command)
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     ////////////////Table 15//////////////////////
@@ -828,52 +861,31 @@ void processSTCommand(char *command)
          *is variable or not.
          */
          CANbaudrate = 0x00000000;
-         CANprotocol = getProtocol();
-         switch(CANprotocol)
+         switch(g_obdConfig.protocol)
          {
-            case(11):
-            case(12):
-            {
-                break;
-            }
-            case(21):
-            case(22):
-            case(23):
-            case(24):
-            case(25):
-            {
-                break;
-            }
+            
             case(31):
             case(32):
             case(33):
             case(34):
             case(35):
             case(36):
-            {
-                //baudrate =  getBaudrateCAN();
-                break;
-            }
             case(51):
             case(52):
             case(53):
             case(54):
             {
-                break;
-            }
-            case(61):
-            case(62):
-            case(63):
-            case(64):
-            {
+                CANbaudrate =  getBaudrateCAN();
+                sprintf(TXbuffer,"%lu",CANbaudrate);
+                UART1_Write_String(TXbuffer);
                 break;
             }
             default:
             {
+                UART1_Write_String("?");
                 break;
             }
-        }
-                    
+        }             
     }
     else if (strncmp(command, "STPBR",5) == 0) 
     {
@@ -885,58 +897,34 @@ void processSTCommand(char *command)
         char *stpbrStr = command + 5; 
         if (argErrCheck(stpbrStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
             CANbaudrate = strtoul(stpbrStr, NULL, 10);
-            CANprotocol = getProtocol();
-            switch(CANprotocol)
+            switch(g_obdConfig.protocol)
             {
-               case(11):
-               case(12):
-               {
-                   break;
-               }
-               case(21):
-               case(22):
-               case(23):
-               case(24):
-               case(25):
-               {
-                   break;
-               }
                case(31):
                case(32):
                case(33):
                case(34):
                case(35):
                case(36):
-               {
-                   //setBaudrateCAN(CANbaudrate);
-                   break;
-               }
                case(51):
                case(52):
                case(53):
                case(54):
                {
-                   break;
-               }
-               case(61):
-               case(62):
-               case(63):
-               case(64):
-               {
+                   setBaudrateCAN(CANbaudrate);
                    break;
                }
                default:
                {
+                   UART1_Write_String("?");
                    break;
                }
-             }
-        }
-        
+            }
+        }  
     }
     else if (strncmp(command, "STPCB",5) == 0) 
     {
@@ -944,135 +932,104 @@ void processSTCommand(char *command)
          * OBDLink will not automatically append checksum byte for transmitted messages or verify 
          * checksum for received messages.This command does not apply to CAN protocols.
          * Default is 1.
-         */      
-           UART1_Write_String("OK");
+         */
+        char* stpcbStr = command + 5;
+        uint8_t stpcbLen = strlen(stpcbStr);
+        if (argErrCheck(stpcbStr))
+        {
+            UART1_Write_String("?");
+        }
+        else if(stpcbLen == 1)
+        {
+            uint8_t stpcb = strtoul(stpcbStr, NULL, 10);
+            if(stpcb == 0 || stpcb == 1)
+            {
+                UART1_Write_String("OK");
+            }
+            else
+            {
+                UART1_Write_String("?");
+            }        
+        }
+        else
+        {
+            UART1_Write_String("?");
+        }  
     }
     else if (strcmp(command, "STPC") == 0) 
     {
-        /*Close current protocol.*/      
+        /*Close current protocol.*/
+        //Request Configuration Mode to stop transmission and reception
+        UART1_Write_String("OK");
+        C1CTRL1bits.REQOP = 4;  // 4 = Configuration mode request
+        while (C1CTRL1bits.OPMODE != 4);  // Wait until it actually enters Configuration mode
     }
     else if (strcmp(command, "STPRS") == 0) 
     {
         /*Report current protocol string*/
-        CANprotocol = getProtocol();
-                switch(CANprotocol)
-                {
-                        case(11):
-                        {
-                            UART1_Write_String("SAE J1850 PWM\r");
-                            break;
-                        }
-                        case(12):
-                        {
-                            UART1_Write_String("SAE J1850 VPW\r");
-                            break;
-                        }
-                        case(21):
-                        {
-                            UART1_Write_String("ISO 9141\r");
-                            break;
-                        }
-                        case(22):
-                        {
-                            UART1_Write_String("ISO 9141 (5 BAUD)\r");
-                            break;
-                        }
-                        case(23):
-                        {
-                            UART1_Write_String("ISO 14230\r");
-                            break;
-                        }
-                        case(24):
-                        {
-                            UART1_Write_String("ISO 14230 (5 BAUD)\r");
-                            break;
-                        }
-                        case(25):
-                        {
-                            UART1_Write_String("ISO 14230 (FAST)\r");
-                            break;
-                        }
-                        case(31):
-                        {
-                            UART1_Write_String("HS CAN (ISO 11898, 500K/11B)\r");
-                            break;
-                        }
-                        case(32):
-                        {
-                            UART1_Write_String("HS CAN (ISO 11898, 500K/29B)\r");
-                            break;
-                        }
-                        case(33):
-                        {
-                            UART1_Write_String("HS CAN (ISO 15765, 500K/11B)\r");
-                            break;
-                        }
-                        case(34):
-                        {
-                            UART1_Write_String("HS CAN (ISO 15765, 500K/29B)\r");
-                            break;
-                        }
-                        case(35):
-                        {
-                            UART1_Write_String("HS CAN (ISO 15765, 250K/11B)\r");
-                            break;
-                        }
-                        case(36):
-                        {
-                            UART1_Write_String("HS CAN (ISO 15765, 250K/29B)\r");
-                            break;
-                        }
-                        case(51):
-                        {
-                            UART1_Write_String("MS CAN (ISO 11898, 125K/11B)\r");
-                            break;
-                        }
-                        case(52):
-                        {
-                            UART1_Write_String("MS CAN (ISO 11898, 125K/29B)\r");
-                            break;
-                        }
-                        case(53):
-                        {
-                            UART1_Write_String("MS CAN (ISO 15765, 125K/11B)\r");
-                            break;
-                        }
-                        case(54):
-                        {
-                            UART1_Write_String("MS CAN (ISO 15765, 125K/29B)\r");
-                            break;
-                        }
-                        case(61):
-                        {
-                            UART1_Write_String("SW CAN (ISO 11898, 33K/11B)\r");
-                            break;
-                        }
-                        case(62):
-                        {
-                            UART1_Write_String("SW CAN (ISO 11898, 33K/29B)\r");
-                            break;
-                        }
-                        case(63):
-                        {
-                            UART1_Write_String("SW CAN (ISO 15765, 33K/11B)\r");
-                            break;
-                        }
-                        case(64):
-                        {
-                            UART1_Write_String("SW CAN (ISO 15765, 33K/29B)\r");
-                            break;
-                        }
-                        default:
-                        {
-
-                        }
-                    }
+        
+        switch(g_obdConfig.protocol)
+        {
+            case(31):
+            {
+                UART1_Write_String("HS CAN (ISO 11898, 500K/11B)");
+                break;
+            }
+            case(32):
+            {
+                UART1_Write_String("HS CAN (ISO 11898, 500K/29B)");
+                break;
+            }
+            case(33):
+            {
+                UART1_Write_String("HS CAN (ISO 15765, 500K/11B)");
+                break;
+            }
+            case(34):
+            {
+                UART1_Write_String("HS CAN (ISO 15765, 500K/29B)");
+                break;
+            }
+            case(35):
+            {
+                UART1_Write_String("HS CAN (ISO 15765, 250K/11B)");
+                break;
+            }
+            case(36):
+            {
+                UART1_Write_String("HS CAN (ISO 15765, 250K/29B)");
+                break;
+            }
+            case(51):
+            {
+                UART1_Write_String("MS CAN (ISO 11898, 125K/11B)");
+                break;
+            }
+            case(52):
+            {
+                UART1_Write_String("MS CAN (ISO 11898, 125K/29B)");
+                break;
+            }
+            case(53):
+            {
+                UART1_Write_String("MS CAN (ISO 15765, 125K/11B)");
+                break;
+            }
+            case(54):
+            {
+                UART1_Write_String("MS CAN (ISO 15765, 125K/29B)");
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
     }
     else if (strcmp(command, "STPR") == 0) 
     {
-        /*Report current protocol number*/ 
-        CANprotocol = getProtocol();
-        sprintf(TXbuffer, "%u", CANprotocol);
+        /*Report current protocol number*/
+        sprintf(TXbuffer, "%u", g_obdConfig.protocol);
         UART1_Write_String(TXbuffer);
     }
     else if (strncmp(command, "STPTOT",6) == 0) 
@@ -1088,7 +1045,7 @@ void processSTCommand(char *command)
         char *stptotStr = command + 6; 
         if (argErrCheck(stptotStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -1102,7 +1059,7 @@ void processSTCommand(char *command)
             {
                 UART1_Write_String("?");
             }
-          }
+        }
     }
     else if (strncmp(command, "STPTRQ",6) == 0) 
     {
@@ -1115,12 +1072,12 @@ void processSTCommand(char *command)
         char *stptrqStr = command + 6; 
         if (argErrCheck(stptrqStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
             uint32_t stptrqms = strtoul(stptrqStr, NULL, 10);
-            if(stptrqms > 0 && stptrqms < 65536)
+            if(stptrqms >= 0 && stptrqms < 65536)
             {
                g_obdInfo.obdRequestPeriod = stptrqms;
                UART1_Write_String("OK");
@@ -1131,16 +1088,17 @@ void processSTCommand(char *command)
             }
         }
     }
-    else if (strncmp(command, "STPTO",5) == 0) 
+    else if (strncmp(command, "STPTO", 5) == 0) 
     {
         /*Set OBD request timeout. Takes a decimal parameter in milliseconds (1 to 65535). 
-         * 0: timeout is infinite.The default setting is controlled by PP 03.
+         * 0: timeout is infinite.
+         * The default setting is controlled by PP 03.
          * Default is 102 ms.
          */
         char *stptoStr = command + 5; 
         if (argErrCheck(stptoStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -1152,11 +1110,11 @@ void processSTCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
     }
-    else if (strncmp(command, "STPX",5) == 0) 
+    else if (strncmp(command, "STPX",4) == 0) 
     {
         /*Transmit arbitrary message on OBD bus. Takes a variable list of parameters, 
          * separated by commas. Each parameter is prefixed with a single-character 
@@ -1165,17 +1123,170 @@ void processSTCommand(char *command)
          * back to its previous state (on or off) after sending the message.
          * h/d/I/t/r/x/f
          * prereq cmds h:ATSH/t:STPTO,ATAT/r:ATR/x:ATCEA
-         */      
+         */   
+        char *stpxStr = command + 4; 
+        if (argAsciiErrCheck(stpxStr))
+        {
+            UART1_Write_String("?");
+        }
+        else
+        {
+            transmitArbMsg(stpxStr);
+        }
+        
+        ////////////////////////////////
+        ////////////////////////////////
     }
-    else if (strncmp(command, "STP",5) == 0) 
+    else if (strncmp(command, "STP",3) == 0) 
     {
         /*Set current protocol preset
          * 31-36 High Speed CAN
          * 51-54 Medium Speed CAN
          * Mode, timeout, request period, baudrate, sid filter and mask, Eid filter and mask
-         */      
+         */
+        char *stpStr = command + 3; 
+        uint8_t stpLen = strlen(stpStr);
+        if (argErrCheck(stpStr))
+        {
+            UART1_Write_String("?");
+        }
+        else if (stpLen == 2)
+        {
+            uint32_t stp = strtoul(stpStr, NULL, 10);
+            switch (stp) 
+            {
+                case(31):
+                {
+                    g_obdConfig.protocol = stp;
+                    g_obdInfo.canMode = CAN_MODE_STANDARD_DATA_FRAME_VAR_DLC;
+                    g_obdInfo.obdTransmissionTimeout = 100;
+                    g_obdInfo.obdRequestPeriod = 0;
+                    SetCanPin(CAN_SPEED_MODE_HIGH_500K);
+                    setBaudrateCAN(CAN_BAUDRATE_HIGH_SPEED_500K);
+                    configureFilterCAN(g_obdInfo.canMode, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
+                    UART1_Write_String("OK");
+                    break;
+                }
+                case(32):
+                {
+                    g_obdConfig.protocol = stp;
+                    g_obdInfo.canMode = CAN_MODE_EXTENDED_DATA_FRAME_VAR_DLC;
+                    g_obdInfo.obdTransmissionTimeout = 100;
+                    g_obdInfo.obdRequestPeriod = 0;
+                    SetCanPin(CAN_SPEED_MODE_HIGH_500K);
+                    setBaudrateCAN(CAN_BAUDRATE_HIGH_SPEED_500K);
+                    configureFilterCAN(g_obdInfo.canMode, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
+                    UART1_Write_String("OK");
+                    break;
+                }
+                case(33):
+                {
+                    g_obdConfig.protocol = stp;
+                    g_obdInfo.canMode = CAN_MODE_STANDARD_DATA_FRAME_8_DLC;
+                    g_obdInfo.obdTransmissionTimeout = 100;
+                    g_obdInfo.obdRequestPeriod = 0;
+                    SetCanPin(CAN_SPEED_MODE_HIGH_500K);
+                    setBaudrateCAN(CAN_BAUDRATE_HIGH_SPEED_500K);
+                    configureFilterCAN(g_obdInfo.canMode, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
+                    UART1_Write_String("OK");
+                    break;
+                }
+                case(34):
+                {
+                    g_obdConfig.protocol = stp;
+                    g_obdInfo.canMode = CAN_MODE_EXTENDED_DATA_FRAME_8_DLC;
+                    g_obdInfo.obdTransmissionTimeout = 100;
+                    g_obdInfo.obdRequestPeriod = 0;
+                    SetCanPin(CAN_SPEED_MODE_HIGH_500K);
+                    setBaudrateCAN(CAN_BAUDRATE_HIGH_SPEED_500K);
+                    configureFilterCAN(g_obdInfo.canMode, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
+                    UART1_Write_String("OK");
+                    break;
+                }
+                case(35):
+                {
+                    g_obdConfig.protocol = stp;
+                    g_obdInfo.canMode = CAN_MODE_STANDARD_DATA_FRAME_8_DLC;
+                    g_obdInfo.obdTransmissionTimeout = 100;
+                    g_obdInfo.obdRequestPeriod = 0;
+                    SetCanPin(CAN_SPEED_MODE_HIGH_250K);
+                    setBaudrateCAN(CAN_BAUDRATE_HIGH_SPEED_250K);
+                    configureFilterCAN(g_obdInfo.canMode, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
+                    UART1_Write_String("OK");
+                    break;
+                }
+                case(36):
+                {
+                    g_obdConfig.protocol = stp;
+                    g_obdInfo.canMode = CAN_MODE_EXTENDED_DATA_FRAME_8_DLC;
+                    g_obdInfo.obdTransmissionTimeout = 100;
+                    g_obdInfo.obdRequestPeriod = 0;
+                    SetCanPin(CAN_SPEED_MODE_HIGH_250K);
+                    setBaudrateCAN(CAN_BAUDRATE_HIGH_SPEED_250K);
+                    configureFilterCAN(g_obdInfo.canMode, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
+                    UART1_Write_String("OK");
+                    break;
+                }
+                case(51):
+                {
+                    g_obdConfig.protocol = stp;
+                    g_obdInfo.canMode = CAN_MODE_STANDARD_DATA_FRAME_VAR_DLC;
+                    g_obdInfo.obdTransmissionTimeout = 100;
+                    g_obdInfo.obdRequestPeriod = 0;
+                    SetCanPin(CAN_SPEED_MODE_MEDIUM_125K);
+                    setBaudrateCAN(CAN_BAUDRATE_MEDIUM_SPEED_125K);
+                    configureFilterCAN(g_obdInfo.canMode, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
+                    UART1_Write_String("OK");
+                    break;
+                }
+                case(52):
+                {
+                    g_obdConfig.protocol = stp;
+                    g_obdInfo.canMode = CAN_MODE_EXTENDED_DATA_FRAME_VAR_DLC;
+                    g_obdInfo.obdTransmissionTimeout = 100;
+                    g_obdInfo.obdRequestPeriod = 0;
+                    SetCanPin(CAN_SPEED_MODE_MEDIUM_125K);
+                    setBaudrateCAN(CAN_BAUDRATE_MEDIUM_SPEED_125K);
+                    configureFilterCAN(g_obdInfo.canMode, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
+                    UART1_Write_String("OK");
+                    break;
+                }
+                case(53):
+                {
+                    g_obdConfig.protocol = stp;
+                    g_obdInfo.canMode = CAN_MODE_STANDARD_DATA_FRAME_8_DLC;
+                    g_obdInfo.obdTransmissionTimeout = 100;
+                    g_obdInfo.obdRequestPeriod = 0;
+                    SetCanPin(CAN_SPEED_MODE_MEDIUM_125K);
+                    setBaudrateCAN(CAN_BAUDRATE_MEDIUM_SPEED_125K);
+                    configureFilterCAN(g_obdInfo.canMode, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
+                    UART1_Write_String("OK");
+                    break;
+                }
+                case(54):
+                {
+                    g_obdConfig.protocol = stp;
+                    g_obdInfo.canMode = CAN_MODE_EXTENDED_DATA_FRAME_8_DLC;
+                    g_obdInfo.obdTransmissionTimeout = 100;
+                    g_obdInfo.obdRequestPeriod = 0;
+                    SetCanPin(CAN_SPEED_MODE_MEDIUM_125K);
+                    setBaudrateCAN(CAN_BAUDRATE_MEDIUM_SPEED_125K);
+                    configureFilterCAN(g_obdInfo.canMode, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
+                    UART1_Write_String("OK");
+                    break;
+                }
+                default:
+                {
+                    UART1_Write_String("?");
+                    break;
+                }
+            }     
+        }
+        else
+        {
+            UART1_Write_String("?");
+        }
     }
-    
     /////////// Table 17 /////////////////////
     else if (strncmp(command, "STCAF",5) == 0) 
     {
@@ -1187,7 +1298,7 @@ void processSTCommand(char *command)
         char *stcafStr = command + 5; 
         if (argAsciiErrCheck(stcafStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -1202,7 +1313,7 @@ void processSTCommand(char *command)
                 }
                 else
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }
             }
             else if (stcaf.count == 2)
@@ -1217,16 +1328,14 @@ void processSTCommand(char *command)
                 }
                 else
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
-            freeParsedData(&stcaf);
-        }
-        
+        } 
     }
     else if (strncmp(command, "STCFCPA",7) == 0) 
     {
@@ -1239,7 +1348,7 @@ void processSTCommand(char *command)
         char *stcfcpaStr = command + 7; 
         if (argAsciiErrCheck(stcfcpaStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -1250,7 +1359,7 @@ void processSTCommand(char *command)
                 uint8_t lenValue1 = strlen(stcfcpa.values[1]);
                 if (lenValue0 != lenValue1)
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }
                 else if (lenValue0 == 3 || lenValue0 == 8)
                 {
@@ -1299,12 +1408,12 @@ void processSTCommand(char *command)
                 }
                 else
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
     }
@@ -1322,11 +1431,12 @@ void processSTCommand(char *command)
          * (silent monitoring, no ACKs)
          */ 
         char *stcmmStr = command + 5; 
+        uint8_t stcmmLen = strlen(stcmmStr);
         if (argErrCheck(stcmmStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
-        else
+        else if (stcmmLen == 1)
         {
             uint32_t stcmm = strtoul(stcmmStr, NULL, 10);
             if(stcmm >=0 && stcmm <= 2)
@@ -1339,7 +1449,10 @@ void processSTCommand(char *command)
                 UART1_Write_String("?");
             }
         }
-
+        else
+        {
+            UART1_Write_String("?");
+        }
     }
     else if (strncmp(command, "STCSEGR",7) == 0) 
     {
@@ -1348,11 +1461,12 @@ void processSTCommand(char *command)
          * Arg: 0/1 Default is 0 (CAN segmentation disabled).
          */    
         char *segrStr = command + 7; 
+        uint8_t segrLen = strlen(segrStr);
         if (argErrCheck(segrStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
-        else
+        else if (segrLen == 1)
         {
             uint32_t segr = strtoul(segrStr, NULL, 10);
             if(segr == 0 || segr == 1)
@@ -1362,8 +1476,12 @@ void processSTCommand(char *command)
             }
             else
             {
-                UART1_Write_String('?');
+                UART1_Write_String("?");
             }
+        }
+        else
+        {
+            UART1_Write_String("?");
         }
     }
     else if (strncmp(command, "STCSEGT",7) == 0) 
@@ -1373,11 +1491,12 @@ void processSTCommand(char *command)
          * Arg: 0/1  Default is 0 (CAN segmentation disabled)
          */    
         char *segtStr = command + 7; 
+        uint8_t segtLen = strlen(segtStr);
         if (argErrCheck(segtStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
-        else
+        else if (segtLen == 1)
         {
             uint32_t segt = strtoul(segtStr, NULL, 10);
             if(segt == 0 || segt == 1)
@@ -1387,8 +1506,12 @@ void processSTCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
+        }
+        else
+        {
+            UART1_Write_String("?");
         }
     }
     else if (strncmp(command, "STCSTM",6) == 0) 
@@ -1400,7 +1523,7 @@ void processSTCommand(char *command)
         char *stcstmStr = command + 6; 
         if (argAsciiErrCheck(stcstmStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -1441,7 +1564,7 @@ void processSTCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
             
         }
@@ -1455,7 +1578,7 @@ void processSTCommand(char *command)
         char *stctorStr = command + 6; 
         if (argAsciiErrCheck(stctorStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -1472,7 +1595,7 @@ void processSTCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }  
     }
@@ -1483,8 +1606,7 @@ void processSTCommand(char *command)
          */ 
         uint32_t stctrrValue = getCANTimConReg();
         sprintf(TXbuffer,"%06X",stctrrValue);
-        UART1_Write_String(TXbuffer);
-        
+        UART1_Write_String(TXbuffer);   
     }
     else if (strncmp(command, "STCTR",5) == 0) 
     {
@@ -1495,7 +1617,7 @@ void processSTCommand(char *command)
         uint8_t stctrlen = strlen(stctrStr);
         if (argAsciiErrCheck(stctrStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -1509,23 +1631,55 @@ void processSTCommand(char *command)
                 }
                 else
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
     }
     
     ///////////////Table18 - Monitoring ST Commands ///////////////////
-    else if (strncmp(command, "STM",5) == 0) 
+    else if (strcmp(command, "STM") == 0) 
     {
         /*Monitor OBD bus using current filters.
-         */    
+         */   
+        configureFilterCAN(g_obdInfo.canMode, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, 0x00000000, 0x00000000);
+        UART1_Write('>');
+//        CommunicationInterface_t * comIfc = GetCurrentInterface();
+//        comIfc->flushFct();
+//        while (1) 
+//        { // perhaps change to state engine
+//        clearWatchdog();
+//        if (dataAvailableFIFO(P_ATP_USART_FIFO_BUFFER)) 
+//        {
+//            if (getByteFIFO(P_ATP_USART_FIFO_BUFFER) == '\r') 
+//            {
+//                UART1_Write_String("STOPPED");
+//                break;
+//            }
+//        }
+//                        volatile MessageProperties_t msgProps = {0};
+//                        msgProps.formating = (MessageFormatingProperties_t*) & g_obdInfo.formatProperties; // TODO: figure out why he wants explicit cast
+//                        msgProps.timeout = g_obdInfo.obdRequestTimeout;
+//                        msgProps.LineCount = 8;
+//                        msgProps.formating->printFrameNumber = 1;
+//
+//                        if (comIfc->getAvailableCountFct() > 0) {
+//                            uint8_t rawData[MAX_CAN_FRAMES_SIZE][MAX_CAN_MESSAGE_DATA_LENGTH];
+//                            msgProps.frameCountReceived = 0;
+//                            uint8_t IsTimeoutOccured = ReadAllMessages(comIfc, &msgProps, rawData);
+//                            if (IsTimeoutOccured) {
+//                                //printDEBUG(DSYS, "Error (TO) After ReadAllMsg TimeoutTO=%d\n", IsTimeoutOccured);
+//                            }
+//                        }
+//                    }
+//                    g_obdInfo.state = OBD_STATE_SEND_PROMPT;
+//                    break;        
     }
-    else if (strncmp(command, "STMA",5) == 0) 
+    else if (strcmp(command, "STMA") == 0) 
     {
         /*Monitor all messages on OBD bus. For CAN protocols, all messages will 
          * be treated as ISO 15765. To monitor raw CAN messages, use the STM command.
@@ -1539,10 +1693,12 @@ void processSTCommand(char *command)
         g_obdInfo.obdBlockFilterIdx = 0;
         g_obdInfo.obdPassFilterIdx = 0;
         g_obdInfo.obdFlowcontrolFilterIdx = 0;
+        UART1_Write_String("OK");
     }
     else if (strcmp(command, "STFA") == 0) 
     {
-        /*Enable automatic filtering.*/  
+        /*Enable automatic filtering.*/ 
+        UART1_Write_String("OK");
         g_obdInfo.obdAfState = OBD_AUTOFILETRING_STATE_ENABLED;
     }
     else if (strncmp(command, "STFBA",5) == 0) 
@@ -1552,7 +1708,7 @@ void processSTCommand(char *command)
         char *stfbaStr = command + 5; 
         if (argAsciiErrCheck(stfbaStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -1563,7 +1719,7 @@ void processSTCommand(char *command)
                 uint8_t stfbalen1 = strlen(stfba.values[1]);
                 if (stfbalen0 != stfbalen1)
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }
                 else if (stfbalen0%2 != 0 && stfbalen0 <= 10)
                 {
@@ -1622,12 +1778,12 @@ void processSTCommand(char *command)
                 }
                 else
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
     }
@@ -1635,6 +1791,7 @@ void processSTCommand(char *command)
     {
         /*Clear all block filters*/ 
         g_obdInfo.obdBlockFilterIdx = 0;
+        UART1_Write_String("OK");
     }
     else if (strncmp(command, "STFFCA",6) == 0) 
     {
@@ -1643,7 +1800,7 @@ void processSTCommand(char *command)
         char *stffcaStr = command + 6; 
         if (argAsciiErrCheck(stffcaStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -1654,7 +1811,7 @@ void processSTCommand(char *command)
                 uint8_t stffcalen1 = strlen(stffca.values[1]);
                 if (stffcalen0 != stffcalen1)
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }
                 else if (stffcalen0%2 != 0 && stffcalen0 <= 10)
                 {
@@ -1682,7 +1839,7 @@ void processSTCommand(char *command)
                     uint32_t stffcaValue0 = strtoul(stffca.values[0], NULL, 16);
                     uint32_t stffcaValue1 = strtoul(stffca.values[1], NULL, 16);
                     
-                    if(g_obdInfo.obdFlowcontrolFilterIdx < OBD_BLOCK_FILTER_CNT)
+                    if(g_obdInfo.obdFlowcontrolFilterIdx < OBD_FLOWCONTROL_FILTER_CNT)
                     {
                         g_obdInfo.obdFlowcontrolFilter[g_obdInfo.obdFlowcontrolFilterIdx][0] = stffcaValue0;
                         g_obdInfo.obdFlowcontrolFilter[g_obdInfo.obdFlowcontrolFilterIdx][1] = stffcaValue1;
@@ -1699,7 +1856,7 @@ void processSTCommand(char *command)
                     uint32_t stffcaValue0 = strtoul(stffca.values[0], NULL, 16);
                     uint32_t stffcaValue1 = strtoul(stffca.values[1], NULL, 16);
                     
-                    if(g_obdInfo.obdFlowcontrolFilterIdx < OBD_BLOCK_FILTER_CNT)
+                    if(g_obdInfo.obdFlowcontrolFilterIdx < OBD_FLOWCONTROL_FILTER_CNT)
                     {
                         g_obdInfo.obdFlowcontrolFilter[g_obdInfo.obdFlowcontrolFilterIdx][0] = stffcaValue0;
                         g_obdInfo.obdFlowcontrolFilter[g_obdInfo.obdFlowcontrolFilterIdx][1] = stffcaValue1;
@@ -1713,19 +1870,20 @@ void processSTCommand(char *command)
                 }
                 else
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
     }
-    else if (strncmp(command, "STFFCC",5) == 0) 
+    else if (strcmp(command, "STFFCC") == 0) 
     {
         /*Clear all flow control filters.
          */    
+        UART1_Write_String("OK");
         g_obdInfo.obdFlowcontrolFilterIdx = 0;
     }
     else if (strncmp(command, "STFPA",5) == 0) 
@@ -1738,7 +1896,7 @@ void processSTCommand(char *command)
         char *stfpaStr = command + 5; 
         if (argAsciiErrCheck(stfpaStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -1749,7 +1907,7 @@ void processSTCommand(char *command)
                 uint8_t stfpalen1 = strlen(stfpa.values[1]);
                 if (stfpalen0 != stfpalen1)
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }
                 else if (stfpalen0%2 != 0 && stfpalen0 <= 10)
                 {
@@ -1777,7 +1935,7 @@ void processSTCommand(char *command)
                     uint32_t stfpaValue0 = strtoul(stfpa.values[0], NULL, 16);
                     uint32_t stfpaValue1 = strtoul(stfpa.values[1], NULL, 16);
                     
-                    if(g_obdInfo.obdPassFilterIdx < OBD_BLOCK_FILTER_CNT)
+                    if(g_obdInfo.obdPassFilterIdx < OBD_PASS_FILTER_CNT)
                     {
                         g_obdInfo.obdPassFilter[g_obdInfo.obdPassFilterIdx][0] = stfpaValue0;
                         g_obdInfo.obdPassFilter[g_obdInfo.obdPassFilterIdx][1] = stfpaValue1;
@@ -1794,7 +1952,7 @@ void processSTCommand(char *command)
                     uint32_t stfpaValue0 = strtoul(stfpa.values[0], NULL, 16);
                     uint32_t stfpaValue1 = strtoul(stfpa.values[1], NULL, 16);
                     
-                    if(g_obdInfo.obdPassFilterIdx < OBD_BLOCK_FILTER_CNT)
+                    if(g_obdInfo.obdPassFilterIdx < OBD_PASS_FILTER_CNT)
                     {
                         g_obdInfo.obdPassFilter[g_obdInfo.obdPassFilterIdx][0] = stfpaValue0;
                         g_obdInfo.obdPassFilter[g_obdInfo.obdPassFilterIdx][1] = stfpaValue1;
@@ -1808,12 +1966,12 @@ void processSTCommand(char *command)
                 }
                 else
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
         
@@ -1822,6 +1980,7 @@ void processSTCommand(char *command)
     {
         /*Clear all pass filters
          */    
+        UART1_Write_String("OK");
         g_obdInfo.obdPassFilterIdx = 0;
     }
     
@@ -1845,7 +2004,7 @@ void processSTCommand(char *command)
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }  
     }
     else if (strcmp(command, "STRSTNVM") == 0) 
@@ -1869,7 +2028,7 @@ void processSTCommand(char *command)
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if (strncmp(command, "STUIL",5) == 0) 
@@ -1880,7 +2039,7 @@ void processSTCommand(char *command)
         uint8_t stuilLen = strlen(stuilStr);
         if (argErrCheck(stuilStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (stuilLen == 1)
         {
@@ -1901,41 +2060,41 @@ void processSTCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         
     }
     else if (strncmp(command, "STGPC",5) == 0) 
     {
         //Configure I/O pins
-        char *stgpcStr = command + 5; 
+        char *stgpcStr = command + 5;
+        uint8_t flag = 1;
+        uint8_t stgpcLen = strlen(stgpcStr);
         if (argAsciiErrCheck(stgpcStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
             return;
         }
-        else
+        else if (stgpcLen > 0)
         {
-            GPIO_CONFIG config[32];
-            uint16_t idx = 0;
-            uint16_t k = 0;
+            GPIO_CONFIG config;
             uint32_t stgpaPar;
             ParsedData stgpa = parseString(stgpcStr,',');
-            for(k = 0; k < stgpa.count ; k++)
+            if(stgpa.count == 1)
             {
-                ParsedData stgpaArg = parseString(stgpa.values[k],':');
-                if(stgpaArg.count == 2){
-                    config[idx].ioTypeConfig = '\0';
-                }
-                if (2>stgpaArg.count || stgpaArg.count>3)
+                ParsedData stgpaArg = parseString(stgpa.values[0],':');
+                if(stgpaArg.count == 2)
                 {
-                    UART1_Write('?');
-                    return;
+                    config.ioTypeConfig = '\0';
+                }
+                if (stgpaArg.count < 2 || stgpaArg.count > 3)
+                {
+                    flag = 0;
                 }
                 else
                 {
@@ -1945,93 +2104,102 @@ void processSTCommand(char *command)
                         if(p==0)
                         {
                             stgpaPar = strtoul(stgpaArg.values[0], NULL, 10);
-                            config[idx].id = stgpaPar;
+                            config.id = stgpaPar;
                         }
                         else if (p == 1)
                         {
                             if ( strcmp(stgpaArg.values[1],"O")==0)
                             {
-                                config[idx].ioConfig = GPIO_CONFIG_OUTPUT;
+                                config.ioConfig = GPIO_CONFIG_OUTPUT;
                             }
                             else if (strcmp(stgpaArg.values[1], "I")==0)
                             {
-                                config[idx].ioConfig = GPIO_CONFIG_INPUT;
+                                config.ioConfig = GPIO_CONFIG_INPUT;
                             }
                             else
                             {
-                                UART1_Write('?');
-                                return;
+                                flag = 0;
                             }
                         }
                         else if ( p == 2)
                         {
                             if (strcmp(stgpaArg.values[2], "N0") == 0)
                             {
-                                config[idx].ioTypeConfig = GPIO_CONFIG_OPEN_DRAIN_DISABLE;
+                                config.ioTypeConfig = GPIO_CONFIG_OPEN_DRAIN_DISABLE;
                             }
                             else if (strcmp(stgpaArg.values[2], "N1") == 0)
                             {
-                                config[idx].ioTypeConfig = GPIO_CONFIG_OPEN_DRAIN_ENABLE;
+                                config.ioTypeConfig = GPIO_CONFIG_OPEN_DRAIN_ENABLE;
                             }
                             else if (strcmp(stgpaArg.values[2], "U0") == 0)
                             {
-                                config[idx].ioTypeConfig = GPIO_CONFIG_PULL_UP_DISABLE;
+                                config.ioTypeConfig = GPIO_CONFIG_PULL_UP_DISABLE;
                             }
                             else if (strcmp(stgpaArg.values[2], "U1") == 0)
                             {
-                                config[idx].ioTypeConfig = GPIO_CONFIG_PULL_UP_ENABLE;
+                                config.ioTypeConfig = GPIO_CONFIG_PULL_UP_ENABLE;
                             }
                             else if (strcmp(stgpaArg.values[2], "D0") == 0)
                             {
-                                config[idx].ioTypeConfig = GPIO_CONFIG_PULL_DOWN_DISABLE;
+                                config.ioTypeConfig = GPIO_CONFIG_PULL_DOWN_DISABLE;
                             }
                             else if (strcmp(stgpaArg.values[2], "D1") == 0)
                             {
-                                config[idx].ioTypeConfig = GPIO_CONFIG_PULL_DOWN_ENABLE;
+                                config.ioTypeConfig = GPIO_CONFIG_PULL_DOWN_ENABLE;
                             }
                             else
                             {
-                                UART1_Write('?');
-                                return;
+                                flag = 0;
                             }
                         }
                         else
                         {
-                            UART1_Write('?');
+                            flag = 0;
                             return;
                         }
                     }
                 }
-                idx++;
-            }
-            for( k = 0; k < idx; k++ )
-            { 
-                if(assertGPIO(config[k]) == GPIO_STATUS_ID_INVALID)
+                if(flag == 1)
                 {
-                    sprintf(TXbuffer, "%u is Invalid \r\n", config[k].id);
-                    UART1_Write_String(TXbuffer); 
-                    return;
-                }
-                else if(configGPIO(config[k]) == GPIO_STATUS_ID_INVALID)
-                {
-                    sprintf(TXbuffer, "%u is Invalid \r\n", config[k].id);
-                    UART1_Write_String(TXbuffer);
-                    return;
+                    if(assertGPIO(config) == GPIO_STATUS_ID_INVALID)
+                    {
+                        flag = 0;
+                    }
+                    else if(configGPIO(config) == GPIO_STATUS_ID_INVALID)
+                    {
+                        flag = 0;
+                    }
                 }
             }
-            
+            else
+            {
+                flag = 0;
+            }
         }
-        UART1_Write_String("\nOK");
+        else
+        {
+            flag = 0;
+        }
+        if (flag == 1)
+        {
+            UART1_Write_String("OK");
+        }
+        else
+        {
+            UART1_Write_String("?");
+        }
     }
     else if (strncmp(command, "STGPIRH",7) == 0) 
     {
         //Read inputs, report value as hex
         char *stgpirhStr = command + 7; 
+        uint8_t stgpirhLen = strlen(stgpirhStr);
+        uint8_t flag = 1;
         if (argAsciiErrCheck(stgpirhStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
-        else
+        else if (stgpirhLen > 0)
         {
             GPIO_CONFIG config[32];
             uint16_t idx = 0;
@@ -2040,31 +2208,60 @@ void processSTCommand(char *command)
             for(k = 0; k < stgpirh.count ; k++)
             {
                 uint32_t stgpirhArg = strtoul(stgpirh.values[k], NULL, 10);
+                if(strlen(stgpirh.values[k]) == 0)
+                {
+                    flag = 0;
+                }
                 config[idx].id = stgpirhArg;
                 idx++;
             }
             uint8_t stgpirhPinStatus = 0x00;
             for(k = 0; k < idx ; k++)
             {
-                stgpirhPinStatus = stgpirhPinStatus << 1;
-                if(readInputGPIO(config[k]) != 0x00)
+                if(assertGPIO(config[k]) == GPIO_STATUS_ID_INVALID)
                 {
-                    stgpirhPinStatus |= 0x01;
-                } 
+                    flag = 0;
+                    break;
+                }
             }
-            sprintf(TXbuffer, "%x", stgpirhPinStatus);
-            UART1_Write_String(TXbuffer);
+            if (flag == 1)
+            {
+                for(k = 0; k < idx ; k++)
+                {
+                    stgpirhPinStatus = stgpirhPinStatus << 1;
+                    if(readInputGPIO(config[k]) != 0x00)
+                    {
+                        stgpirhPinStatus |= 0x01;
+                    }
+                }
+                sprintf(TXbuffer, "%02X", stgpirhPinStatus);
+                UART1_Write_String(TXbuffer);
+            }
+            else
+            {
+                flag = 0;
+            }
+            if (flag == 0)
+            {
+                UART1_Write_String("?");
+            }
+        }
+        else
+        {
+            UART1_Write_String("00");
         }
     }
     else if (strncmp(command, "STGPIR",6) == 0) 
     {
         //Read inputs
         char *stgpirStr = command + 6; 
+        uint8_t stgpirLen = strlen(stgpirStr);
+        uint8_t flag = 1;
         if (argAsciiErrCheck(stgpirStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
-        else
+        else if (stgpirLen>0)
         {
             GPIO_CONFIG config[32];
             uint16_t idx = 0;
@@ -2073,6 +2270,10 @@ void processSTCommand(char *command)
             for(k = 0; k < stgpir.count ; k++)
             {
                 uint32_t stgpirArg = strtoul(stgpir.values[k], NULL, 10);
+                if(strlen(stgpir.values[k]) == 0)
+                {
+                    flag = 0;
+                }
                 config[idx].id = stgpirArg;
                 idx++;
             }
@@ -2081,10 +2282,13 @@ void processSTCommand(char *command)
             {
                 if(assertGPIO(config[k]) == GPIO_STATUS_ID_INVALID)
                 {
-                    sprintf(TXbuffer, "%u is Invalid \r\n", config[k].id);
-                    UART1_Write_String(TXbuffer);
+                    flag = 0;
+                    break;
                 }
-                else
+            }
+            if (flag == 1)
+            {
+                for(k = 0; k < idx ; k++)
                 {
                     stgpirPinStatus = readInputGPIO(config[k]);              
                     if (k == 0)
@@ -2095,23 +2299,36 @@ void processSTCommand(char *command)
                     {
                         sprintf(TXbuffer, ", %u", stgpirPinStatus);
                     }
-                    UART1_Write_String(TXbuffer);
+                    UART1_Write_String1(TXbuffer);
                 }
-                
+                UART1_Write_String("");
             }
-            
+            else
+            {
+                flag = 0;
+            }
+            if (flag == 0)
+            {
+                UART1_Write_String("?");
+            }
+        }
+        else
+        {
+            UART1_Write_String("0");
         }
     }
     else if (strncmp(command, "STGPOR",6) == 0) 
     {
         //Read Output latches
-        char *stgporStr = command + 6; 
+        char *stgporStr = command + 6;
+        uint8_t stgporLen = strlen(stgporStr);
+        uint8_t flag = 1;
         if (argAsciiErrCheck(stgporStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
             return;
         }
-        else
+        else if (stgporLen>0)
         {
             GPIO_CONFIG config[32];
             uint16_t idx = 0;
@@ -2120,6 +2337,10 @@ void processSTCommand(char *command)
             for(k = 0; k < stgpor.count ; k++)
             {
                 uint32_t stgporArg = strtoul(stgpor.values[k], NULL, 10);
+                if(strlen(stgpor.values[k]) == 0)
+                {
+                    flag = 0;
+                }
                 config[idx].id = stgporArg;
                 idx++;
             }
@@ -2128,10 +2349,12 @@ void processSTCommand(char *command)
             {
                 if(assertGPIO(config[k]) == GPIO_STATUS_ID_INVALID)
                 {
-                    sprintf(TXbuffer, "%u is Invalid \r\n", config[k].id);
-                    UART1_Write_String(TXbuffer);
+                    flag = 0;
                 }
-                else
+            }
+            if (flag == 1)
+            {
+                for(k = 0; k < idx ; k++)
                 {
                     stgporPinStatus = getStateGPIO(config[k]);              
                     if (k == 0)
@@ -2142,33 +2365,47 @@ void processSTCommand(char *command)
                     {
                         sprintf(TXbuffer, ", %u", stgporPinStatus);
                     }
-                    UART1_Write_String(TXbuffer);
-                } 
+                    UART1_Write_String1(TXbuffer);
+                }
+                UART1_Write_String("");
             }
-            
+            else
+            {
+                flag = 0;
+            }
+            if (flag == 0)
+            {
+                UART1_Write_String("?");
+            }
+        }
+        else
+        {
+            UART1_Write_String("0");
         }
     }
-    else if(strcmp(command, "STCANTX") == 0)
-    {
-        canTransmit();
-        canReceive();
-        
-    }
-    else if(strcmp(command, "STCANRX") == 0)
-    {
-        canReceive();
-        canTransmit();
-    }
+//    else if(strcmp(command, "STCANTX") == 0)
+//    {
+//        canTransmit();
+//        canReceive();
+//        
+//    }
+//    else if(strcmp(command, "STCANRX") == 0)
+//    {
+//        canReceive();
+//        canTransmit();
+//    }
     else if (strncmp(command, "STGPOW",6) == 0) 
     {
         //Write Output latches
-        char *stgpowStr = command + 6; 
+        char *stgpowStr = command + 6;
+        uint8_t stgpowLen = strlen(stgpowStr);
+        uint8_t flag = 1;
         if (argAsciiErrCheck(stgpowStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
             return;
         }
-        else
+        else if (stgpowLen > 0)
         {
             GPIO_CONFIG config[32];
             uint16_t idx = 0;
@@ -2178,67 +2415,83 @@ void processSTCommand(char *command)
             for(k = 0; k < stgpow.count ; k++)
             {
                 ParsedData stgpowArg = parseString(stgpow.values[k],':');
-                if (stgpowArg.count!=2)
+                
+                if (stgpowArg.count!=2 && strlen(stgpow.values[k]) == 0)
                 {
-                    UART1_Write('?');
-                    return;
+                    flag = 0;
                 }
                 else
                 {
-                    uint16_t p = 0;
-                    for( p = 0; p < stgpowArg.count; p++)
+                    for(k = 0; k < stgpow.count ; k++)
                     {
-                        if(p==0)
+                        uint16_t p = 0;
+                        for( p = 0; p < stgpowArg.count; p++)
                         {
-                            stgpowPar = strtoul(stgpowArg.values[0], NULL, 10);
-                            config[idx].id = stgpowPar;
-                        }
-                        else if (p == 1)
-                        {
-                            if ( strcmp(stgpowArg.values[1], "0") == 0)
+                            if(p==0)
                             {
-                                config[idx].state = 0;
+                                stgpowPar = strtoul(stgpowArg.values[0], NULL, 10);
+                                config[idx].id = stgpowPar;
                             }
-                            else if (strcmp(stgpowArg.values[1], "1") == 0)
+                            else if (p == 1)
                             {
-                                config[idx].state = 1;
+                                if ( strcmp(stgpowArg.values[1], "0") == 0)
+                                {
+                                    config[idx].state = 0;
+                                }
+                                else if (strcmp(stgpowArg.values[1], "1") == 0)
+                                {
+                                    config[idx].state = 1;
+                                }
+                                else
+                                {
+                                    flag = 0;
+                                }
                             }
                             else
                             {
-                                UART1_Write('?');
-                                return;
-                            }
+                                flag = 0;
+                            }  
                         }
-                        else
-                        {
-                            UART1_Write('?');
-                            return;
-                        }
+                        idx++;
                     }
                 }
-                idx++;
             }
-            for( k = 0; k < idx; k++ )
-            { 
-                if(assertGPIO(config[k]) == GPIO_STATUS_ID_INVALID)
-                {
-                    sprintf(TXbuffer, "%u is Invalid \r\n", config[k].id);
-                    UART1_Write_String(TXbuffer); 
-                    return;
-                }
-                else if(setStateGPIO(config[k]) == GPIO_STATUS_ID_INVALID)
-                {
-                    sprintf(TXbuffer, "%u is Invalid \r\n", config[k].id);
-                    UART1_Write_String(TXbuffer);
-                    return;
-                }
-            }    
+            if (flag == 1)
+            {
+                for( k = 0; k < idx; k++ )
+                { 
+                    if(assertGPIO(config[k]) == GPIO_STATUS_ID_INVALID)
+                    {
+                        flag = 0;
+                    }
+                    else if(setStateGPIO(config[k]) == GPIO_STATUS_ID_INVALID)
+                    {
+                        flag = 0;
+                    }
+                }  
+            }
+            if (flag == 0)
+            {
+                UART1_Write_String("?");
+            }
+            else
+            {
+                UART1_Write_String("OK");
+            }
+            
+            
+            
+            
         }
-        UART1_Write_String("\nOK");
+        else
+        {
+            UART1_Write_String("?");
+        }
+        
     }
     else 
     {
-        UART1_Write('?');
+        UART1_Write_String("?");
         return;
     }
     
@@ -2254,7 +2507,7 @@ void processATCommand(char *command)
         uint8_t atdLen = strlen(atdStr);
         if (argErrCheck(atdStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (atdLen == 1)
         {
@@ -2278,7 +2531,7 @@ void processATCommand(char *command)
           }
           else
           {
-              UART1_Write('?');
+              UART1_Write_String("?");
           }
         }
         else
@@ -2290,7 +2543,9 @@ void processATCommand(char *command)
            * Message headers
            * Message filter
            * Timeouts*/
+        delayMs(10);
         setAllSettoDefault();
+        delayMs(10);
         UART1_Write_String("OK");
         }
         
@@ -2304,7 +2559,7 @@ void processATCommand(char *command)
         uint8_t echoLen = strlen(echoStr);
         if (argErrCheck(echoStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (echoLen==1)
         {
@@ -2319,16 +2574,16 @@ void processATCommand(char *command)
             {
                 enableEcho();
             }
-            UART1_Write_String("\rOK");
+            UART1_Write_String("OK");
           }
           else
           {
-              UART1_Write('?');
+              UART1_Write_String("?");
           }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if  (strcmp(command, "ATI") == 0)
@@ -2341,11 +2596,11 @@ void processATCommand(char *command)
     {
         //Line feeds on/off 
         //Default OFF
-        char *lineFeedStr = command + 3; // Skip "STBR "
+        char *lineFeedStr = command + 3; 
         uint8_t LFLen = strlen(lineFeedStr);
         if (argErrCheck(lineFeedStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (LFLen==1)
         {
@@ -2360,16 +2615,16 @@ void processATCommand(char *command)
             {
                 enableLF();
             }
-            UART1_Write_String("\rOK");
+            UART1_Write_String("OK");
           }
           else
           {
-              UART1_Write('?');
+              UART1_Write_String("?");
           }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if  (strcmp(command, "ATWS") == 0)
@@ -2378,8 +2633,14 @@ void processATCommand(char *command)
         unlike ATZ, skips the LED test and keeps the user 
         selected baud rate (selected using ATBRD, STBR, or 
         STSBR).*/
-        loadDefaultOnWarmReset();
-        UART1_Write_String("\rOK");
+        delayMs(10);
+        loadDefaultConfigurationOBD();
+        //loadCustomConfigurationOBD(PROGRAMMABLE_PARAMETERS_TYPE_R);
+        loadCustomConfigurationOBD(1);  
+        delayMs(10);
+        UART1_Write('\r');
+        UART1_Write('\r');
+        UART1_Write_String(g_obdConfig.atiId);
     }
     else if  (strcmp(command, "ATZ") == 0)
     {
@@ -2390,7 +2651,7 @@ void processATCommand(char *command)
             updateCustomConfigurationOBD();
         }
         
-        delay_ms(100);
+        delay_ms(300);
         asm("reset");
     }
     else if  (strcmp(command, "AT@1") == 0)
@@ -2404,7 +2665,7 @@ void processATCommand(char *command)
         //Display device identifier
         if (g_obdOtpConfig.deviceIdentifierFlag == 0xff) 
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         } 
         else 
         {
@@ -2418,7 +2679,7 @@ void processATCommand(char *command)
         uint8_t DeviceIDLen =strlen(DeviceIDStr);
         if (argAsciiErrCheck(DeviceIDStr))
         {
-           UART1_Write('?');
+           UART1_Write_String("?");
         }
         else if(DeviceIDLen == 12)
         {
@@ -2431,56 +2692,55 @@ void processATCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         } 
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
-    else if  (strncmp(command, "ATPPS", 5) == 0)
+    else if  (strcmp(command, "ATPPS") == 0)
     {
         //Print programmable parameter summary.
         printPParameters();
     }
-    else if (strncmp(command, "ATPPR", 5) == 0)
-    {
-        restoreDefaultPParameters();
-        UART1_Write_String("\rOK");
-    }
-    else if (strncmp(command, "ATPPTS", 6) == 0)
-    {
-       //printSaved("ALL");
-       UART1_Write_String("\rOKATPPTS");
-    }
-    else if (strncmp(command, "ATPPT", 5) == 0)
-    {
-       saveOnFlash();
-       UART1_Write_String("\rOKATPPT");
-    }
+//    else if (strncmp(command, "ATPPR", 5) == 0)
+//    {
+//        restoreDefaultPParameters();
+//        UART1_Write_String("OK");
+//    }
+//    else if (strncmp(command, "ATPPTS", 6) == 0)
+//    {
+//       //printSaved("ALL");
+//       UART1_Write_String("\rOKATPPTS");
+//    }
+//    else if (strncmp(command, "ATPPT", 5) == 0)
+//    {
+//       saveOnFlash();
+//       UART1_Write_String("\rOKATPPT");
+//    }
     
     else if  (strncmp(command, "ATPP", 4) == 0)
     {
        //Turn off/ON programmable parameter xx.
        //Set the value of programmable parameter xx to yy.
-       char *atppStr = command + 4; // Skip "STBR "
+       char *atppStr = command + 4; 
        if (argAsciiErrCheck(atppStr))
         {
-           UART1_Write('?');
+           UART1_Write_String("?");
         }
         else
         {
           configurePPs(atppStr);
-          UART1_Write_String("\rOK");
         }
     }
     
-    else if (strncmp(command, "ATPOC", 5) == 0)
-    {
-       //initNVM();
-       //printAllSaved();
-    }
+//    else if (strncmp(command, "ATPOC", 5) == 0)
+//    {
+//       //initNVM();
+//       //printAllSaved();
+//    }
     
     /////////// Table 5 - OBD AT Commands //////////////////
     else if (strcmp(command, "ATAL") == 0)
@@ -2499,10 +2759,10 @@ void processATCommand(char *command)
         * Modes: 0/1/2 
         * First frame will follow STPTO/ATST timeout
         */
-        char *atatStr = command + 4; // Skip "STBR "
+        char *atatStr = command + 4; 
         if (argErrCheck(atatStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -2514,7 +2774,7 @@ void processATCommand(char *command)
           }
           else
           {
-              UART1_Write('?');
+              UART1_Write_String("?");
           }
         }
     }
@@ -2528,7 +2788,7 @@ void processATCommand(char *command)
         uint8_t athLen = strlen(athStr);
         if (argErrCheck(athStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (athLen == 1)
         {
@@ -2540,12 +2800,12 @@ void processATCommand(char *command)
           }
           else
           {
-              UART1_Write('?');
+              UART1_Write_String("?");
           }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         
     }
@@ -2563,7 +2823,9 @@ void processATCommand(char *command)
         * By default, OBDLink ignores (doesn?t print) RTR frames. To enable 
         * printing of RTR frames, turn on the headers (ATH 1) or turn CAN formatting 
         * off (ATCAF 0).*/
+        UART1_Write_String("OK");
         txRemoteCAN(g_obdInfo.canSid, g_obdInfo.canEid, g_obdInfo.canMode, g_obdInfo.obdTransmissionTimeout);
+        
     }
     else if (strncmp(command, "ATR", 3) == 0)
     {
@@ -2575,7 +2837,7 @@ void processATCommand(char *command)
         uint8_t atrLen = strlen(atrStr);
         if (argErrCheck(atrStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if(atrLen == 1)
         {
@@ -2592,12 +2854,12 @@ void processATCommand(char *command)
           }
           else
           {
-              UART1_Write('?');
+              UART1_Write_String("?");
           }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         
     }
@@ -2611,7 +2873,7 @@ void processATCommand(char *command)
         uint8_t atshLen = strlen(atshStr);
         if (argAsciiErrCheck(atshStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (atshLen > 0)
         {
@@ -2629,12 +2891,12 @@ void processATCommand(char *command)
             }
             else 
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
             //printDEBUG(DSYS, "SID[%xw]\n", sid);
             //sendStringATP("OK");
@@ -2649,7 +2911,7 @@ void processATCommand(char *command)
         uint8_t atsLen = strlen(atsStr);
         if (argErrCheck(atsStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (atsLen == 1)
         {
@@ -2661,12 +2923,12 @@ void processATCommand(char *command)
           }
           else
           {
-              UART1_Write('?');
+              UART1_Write_String("?");
           }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if (strncmp(command, "ATTA", 4) == 0)
@@ -2678,7 +2940,7 @@ void processATCommand(char *command)
         uint8_t attaLen = strlen(attaStr);
         if (argAsciiErrCheck(attaStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (attaLen == 2)
         {
@@ -2690,12 +2952,12 @@ void processATCommand(char *command)
           }
           else
           {
-              UART1_Write('?');
+              UART1_Write_String("?");
           }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     
@@ -2710,7 +2972,7 @@ void processATCommand(char *command)
         uint8_t atcafLen = strlen(atcafStr);
         if (argAsciiErrCheck(atcafStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (atcafLen == 1)
         {
@@ -2740,12 +3002,12 @@ void processATCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if (strncmp(command, "ATCFC", 5) == 0)
@@ -2758,7 +3020,7 @@ void processATCommand(char *command)
         uint8_t atcfcLen = strlen(atcfcStr);
         if (argErrCheck(atcfcStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (atcfcLen == 1)
         {
@@ -2775,12 +3037,12 @@ void processATCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if (strncmp(command, "ATCF", 4) == 0)
@@ -2789,10 +3051,10 @@ void processATCommand(char *command)
         * This command accepts both 11-bit and 29-bit CAN IDs.
         * Example: ATCF 7E0/ATCF 18 DB 00 00
         */
-        char *atcfStr = command + 4; // Skip "STBR "
+        char *atcfStr = command + 4; 
         if (argAsciiErrCheck(atcfStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -2813,7 +3075,7 @@ void processATCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
     }
@@ -2823,10 +3085,10 @@ void processATCommand(char *command)
         * This command accepts both 11-bit and 29-bit CAN IDs.
         * Example: ATCM FF0/ATCM FF FE 00 00
         */
-        char *atcmStr = command + 4; // Skip "STBR "
+        char *atcmStr = command + 4; 
         if (argAsciiErrCheck(atcmStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -2847,7 +3109,7 @@ void processATCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }    
     }
@@ -2862,7 +3124,7 @@ void processATCommand(char *command)
         uint8_t atcpLen = strlen(atcpStr);
         if (argAsciiErrCheck(atcpStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (atcpLen == 2)
         {
@@ -2875,12 +3137,12 @@ void processATCommand(char *command)
           }
           else
           {
-              UART1_Write('?');
+              UART1_Write_String("?");
           }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if (strncmp(command, "ATCRA", 5) == 0)
@@ -2908,7 +3170,7 @@ void processATCommand(char *command)
         
         if (argAsciiErrCheck(atcraStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -2938,7 +3200,7 @@ void processATCommand(char *command)
             }
         }
     }
-    else if (strncmp(command, "ATCS", 5) == 0)
+    else if (strcmp(command, "ATCS") == 0)
     {
        /*Print CAN status counts. 
         * This command displays the number of transmit and receive error counts, 
@@ -2948,7 +3210,7 @@ void processATCommand(char *command)
         uint8_t rxCnt;
         uint8_t txCnt;
         getErrorCountCAN(&rxCnt, &txCnt);
-        sprintf(TXbuffer, "T:%02X R:%02X\r", txCnt, rxCnt);
+        sprintf(TXbuffer, "T:%02X R:%02X", txCnt, rxCnt);
         UART1_Write_String(TXbuffer);
     }
     else if (strncmp(command, "ATFCSD", 6) == 0)
@@ -2962,14 +3224,14 @@ void processATCommand(char *command)
         char *atfcsdStr = command + 6; 
         if (argAsciiErrCheck(atfcsdStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
                 uint8_t atfcsdlen = strlen(atfcsdStr);
                 if (atfcsdlen % 2 != 0 || atfcsdlen > 10)
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }
                 else
                 {
@@ -3012,7 +3274,7 @@ void processATCommand(char *command)
         char *atfcshStr = command + 6; 
         if (argAsciiErrCheck(atfcshStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -3026,7 +3288,7 @@ void processATCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
     }
@@ -3040,7 +3302,7 @@ void processATCommand(char *command)
         uint8_t atfcsmLen = strlen(atfcsmStr);
         if (argErrCheck(atfcsmStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (atfcsmLen == 1)
         {
@@ -3062,12 +3324,12 @@ void processATCommand(char *command)
           }
           else
           {
-              UART1_Write('?');
+              UART1_Write_String("?");
           }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else if (strncmp(command, "ATPB", 4) == 0)
@@ -3080,7 +3342,7 @@ void processATCommand(char *command)
         char *atpbStr = command + 4; 
         if (argAsciiErrCheck(atpbStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -3092,7 +3354,7 @@ void processATCommand(char *command)
                 uint8_t atpbValue2 = (atpbValue >> 8) & 0xFF;
                 if(atpbValue1 > 0x20)
                 {
-                    UART1_Write('?');
+                    UART1_Write_String("?");
                 }
                 else
                 {
@@ -3103,7 +3365,7 @@ void processATCommand(char *command)
             }
             else
             {
-                UART1_Write('?');
+                UART1_Write_String("?");
             }
         }
          
@@ -3118,7 +3380,7 @@ void processATCommand(char *command)
         uint8_t atvLen = strlen(atvStr);
         if (argErrCheck(atvStr))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else if (atvLen == 1)
         {
@@ -3130,17 +3392,17 @@ void processATCommand(char *command)
           }
           else
           {
-              UART1_Write('?');
+              UART1_Write_String("?");
           }
         }
         else
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
     }
     else 
     {
-        UART1_Write('A');
+        UART1_Write_String("?");
     } 
 }
 //function for processing OBD requests
@@ -3149,7 +3411,7 @@ void processOBDRequest(char *command)
     
         if (argAsciiErrCheck(command))
         {
-            UART1_Write('?');
+            UART1_Write_String("?");
         }
         else
         {
@@ -3160,10 +3422,7 @@ void processOBDRequest(char *command)
 //function for setting values to default on ATWS call
 void loadDefaultOnWarmReset(void)
 {
-    loadDefaultConfigurationOBD();
-    //loadCustomConfigurationOBD(PROGRAMMABLE_PARAMETERS_TYPE_R);
-    loadCustomConfigurationOBD(); //TODO:
-    
+     
 }
 
 void obdRequestHandle(char *command)
@@ -3183,7 +3442,7 @@ void obdRequestHandle(char *command)
     uint8_t data_len = len / 2;
     if (data_len > 8) 
     {
-        UART1_Write_String("Command too long for CAN payload\n");
+        UART1_Write_String("Command too long for CAN payload");
         return;
     }
 
@@ -3212,7 +3471,8 @@ void obdRequestHandle(char *command)
     }
     else if(g_obdInfo.obdLongMessageState == OBD_LONG_MESSAGE_STATE_DISABLED)
     {
-       txMessageCAN(0x7DF, 0x18DB33F1, CAN_MODE_STANDARD_DATA_FRAME_8_DLC, data, data_len, 2000);
+       //0x7DF, 0x18DB33F1
+       txMessageCAN(g_obdInfo.canSid, g_obdInfo.canEid, CAN_MODE_STANDARD_DATA_FRAME_8_DLC, data, data_len, 2000);
        //canTransmit(data,data_len);
        if(g_obdInfo.obdResponseState == OBD_RESPONSE_STATE_ENABLED)
        {
@@ -3227,17 +3487,17 @@ void obdRequestHandle(char *command)
         if (g_obdInfo.formatProperties.atcafFormatting == 1 && g_obdInfo.formatProperties.ath != 1)
         {
             sprintf(TXbuffer,"%03X",receivedDatalen);
-            UART1_Write_String(TXbuffer);
+            UART1_Write_String1(TXbuffer);
             if(g_obdInfo.formatProperties.ats == 1)
             {
                 UART1_Write(' ');
             }
             if (g_obdInfo.linefeedState == 1)
             {
-                UART1_Write_String("\n\r");
+                UART1_Write_String("");
             }
             
-            UART1_Write_String("0: ");
+            UART1_Write_String1("0: ");
             uint8_t dataLineCount = 1;
             for (int i = 1; i <= receivedDatalen; i++)
             {
@@ -3248,7 +3508,7 @@ void obdRequestHandle(char *command)
                         UART1_Write('\n');
                     }
                     sprintf(TXbuffer,"\r%X:",dataLineCount);
-                    UART1_Write_String(TXbuffer);
+                    UART1_Write_String1(TXbuffer);
                     dataLineCount++;
                     if(g_obdInfo.formatProperties.ats == 1)
                     {
@@ -3256,7 +3516,7 @@ void obdRequestHandle(char *command)
                     }
                 }
                 sprintf(TXbuffer,"%02X",receivedData[i]);
-                UART1_Write_String(TXbuffer);
+                UART1_Write_String1(TXbuffer);
                 if(g_obdInfo.formatProperties.ats == 1)
                 {
                     UART1_Write(' ');
@@ -3268,7 +3528,7 @@ void obdRequestHandle(char *command)
             if(g_obdInfo.formatProperties.atd == 1 && g_obdInfo.formatProperties.ath == 1)
             {
                 sprintf(TXbuffer,"%02X",receivedData[0]);
-                UART1_Write_String(TXbuffer);
+                UART1_Write_String1(TXbuffer);
                 if(g_obdInfo.formatProperties.ats == 1)
                 {
                     UART1_Write(' ');
@@ -3277,7 +3537,7 @@ void obdRequestHandle(char *command)
             for (int i = 1;i <= receivedDatalen; i++)
             {
                 sprintf(TXbuffer,"%02X",receivedData[i]);
-                UART1_Write_String(TXbuffer);
+                UART1_Write_String1(TXbuffer);
                 if(g_obdInfo.formatProperties.ats == 1)
                 {
                             UART1_Write(' ');
@@ -3295,6 +3555,155 @@ void obdRequestHandle(char *command)
     // Now you can send this over CAN
     // e.g., canSend(OBD_REQUEST_ID, data, data_len);
 }
-
+void transmitArbMsg(char *command)
+{
+//    uint8_t k = 0;
+//    uint32_t sid = g_obdInfo.canSid;
+//    uint32_t eid = g_obdInfo.canEid;
+//    uint8_t  data[MAX_CAN_MESSAGE_DATA_LENGTH] = {0};
+//    uint32_t timeout  = g_obdInfo.obdRequestTimeout;
+//    uint8_t  flag     = 0x00;
+//    uint8_t  dataSize = 0x00;
+//    ParsedData stpx = parseString(stpxStr,',');
+//    for (k = 0; k < stpx.count; k++) 
+//    {
+//        ParsedData stpxArg = parseString(stpx.values[0],':');
+//        if (stpxArg.count != 2) 
+//        {
+//            UART1_Write_String("?");
+//            return;
+//        }
+//        switch (stpxArg.values[0]) 
+//        {
+//            case('H'):
+//            {
+//                uint8_t stpxArgLen = strlen(stpxArg.values[1]);
+//                if ((stpxArgLen != 3) && (stpxArgLen != 6)) 
+//                {
+//                    UART1_Write_String("?");
+//                    return;
+//                } 
+//                else 
+//                {
+//                    uint32_t value = strtoul(stpxArg.values[1], NULL, 16);
+//                    if (stpxArgLen == 3) 
+//                    {
+//                        sid = value & 0x7FF;
+//                    } 
+//                    else 
+//                    {
+//                        eid = value & 0x1FFFFFFF;
+//                    }
+//                }
+//                break;
+//            }
+//            case('D'):
+//            {
+//                data[0] = 0x02;
+//                 = getByteArray4HexStringMISC(parser.argv[1], (char*) &data[1]);
+//                
+//                                        dataSize = res + 1;
+//                                    }
+//                                    break;
+//                                }
+//                                case('l'):
+//                                case('L'):
+//                                {
+//                                    if ((flag & 0x04) || (flag & 0x02)) {
+//                                        sendStringATP("?");
+//                                        g_obdInfo.state = OBD_STATE_SEND_PROMPT;
+//                                        return;
+//                                    } else {
+//                                        flag = flag | 0x04;
+//                                        uint32_t value;
+//                                        int8_t res = getInt4StringMISC(parser.argv[1], &value);
+//                                        if (res != 0) {
+//                                            sendStringATP("?");
+//                                            g_obdInfo.state = OBD_STATE_SEND_PROMPT;
+//                                            return;
+//                                        } else {
+//                                            dataSize = value;
+//                                        }
+//                                    }
+//                                    break;
+//                                }
+//                                case('t'):
+//                                case('T'):
+//                                {
+//                                    if (flag & 0x08) {
+//                                        sendStringATP("?");
+//                                        g_obdInfo.state = OBD_STATE_SEND_PROMPT;
+//                                        return;
+//                                    } else {
+//                                        flag = flag | 0x08;
+//                                        uint32_t value;
+//                                        int8_t res = getInt4StringMISC(parser.argv[1], &value);
+//                                        if (res != 0) {
+//                                            sendStringATP("?");
+//                                            g_obdInfo.state = OBD_STATE_SEND_PROMPT;
+//                                            return;
+//                                        } else {
+//                                            timeout = value;
+//                                        }
+//                                    }
+//                                    break;
+//                                }
+//                                case('r'):
+//                                case('R'):
+//                                {
+//                                    if (flag & 0x10) {
+//                                        sendStringATP("?");
+//                                        g_obdInfo.state = OBD_STATE_SEND_PROMPT;
+//                                        return;
+//                                    } else {
+//                                        flag = flag | 0x10;
+//                                        uint32_t value;
+//                                        int8_t res = getInt4StringMISC(parser.argv[1], &value);
+//                                        if (res != 0) {
+//                                            sendStringATP("?");
+//                                            g_obdInfo.state = OBD_STATE_SEND_PROMPT;
+//                                            return;
+//                                        } else {
+//                                            //responseCnt = value;
+//                                            msgProps.LineCount = value;
+//                                        }
+//                                    }
+//                                    break;
+//                                }
+//                                case('x'):
+//                                case('X'):
+//                                {
+//                                    if (flag & 0x20) {
+//                                        sendStringATP("?");
+//                                        g_obdInfo.state = OBD_STATE_SEND_PROMPT;
+//                                        return;
+//                                    } else {
+//                                        flag = flag | 0x20;
+//                                    }
+//                                    break;
+//                                }
+//                                case('f'):
+//                                case('F'):
+//                                {
+//                                    if (flag & 0x40) {
+//                                        sendStringATP("?");
+//                                        g_obdInfo.state = OBD_STATE_SEND_PROMPT;
+//                                        return;
+//                                    } else {
+//                                        flag = flag | 0x40;
+//
+//                                    }
+//
+//                                    break;
+//                                }
+//                                default:
+//                                {
+//                                    sendStringATP("?");
+//                                    g_obdInfo.state = OBD_STATE_SEND_PROMPT;
+//                                    return;
+//                                }
+//                            }
+//            }
+}
 
 

@@ -119,6 +119,7 @@ enum CAN_SPEED_MODE
     CAN_SPEED_MODE_HIGH_250K,
     CAN_SPEED_MODE_MEDIUM_125K,
 };
+
 enum OBD_CAN_FLOWCONTROL_MODE
 {
     OBD_CAN_FLOWCONTROL_MODE_AUTOMATIC = 0x00,
@@ -269,6 +270,8 @@ typedef struct /*obd_module_t*/
     
     uint16_t LastReceivedAdressSid; // needed for transport protocoll
     uint32_t LastReceivedAdressEid;
+    
+    uint8_t powerControlMode[20];
 } obdStateInfo_t;
 
 
@@ -283,13 +286,18 @@ typedef struct
     uint8_t testerAddress;
 
     uint8_t sleepUartFlags;
-    uint32_t sleepPeriod;
+    uint32_t uartInactivityPeriod;
     uint16_t wakeUartMinPulse;
     uint16_t wakeUartMaxPulse;
+    uint8_t extSleepPinPolarity;
+    uint8_t extSleepSleep;
+    uint8_t extSleepWake;
+    uint16_t extSleepInactivityTime;
+    uint16_t extSleepWakeTime;
     voltageLevelTrigger_t sleepVoltage;
     voltageLevelTrigger_t wakeVoltage;
     voltageLevelTrigger_t levelChangeVoltage;
-    
+    uint8_t pwrCtrlPinPolarity;
     uint8_t dummy[8];
 } obdConfig_t;
 

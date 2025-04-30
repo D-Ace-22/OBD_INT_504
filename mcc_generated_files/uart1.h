@@ -57,7 +57,7 @@
     extern "C" {
 
 #endif
-
+extern char TXbuffer[60];
 /**
   Section: UART1 Driver Routines
 */
@@ -127,6 +127,7 @@ void UART1_ReadString(char *buffer, uint16_t maxLength);
 */
 void UART1_Write(uint8_t byte);
 void UART1_Write_String(const char *str);
+void UART1_Write_String1(const char *str);
 /**
   @Description
     Indicates of there is data available to read.

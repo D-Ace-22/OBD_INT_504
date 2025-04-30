@@ -64,4 +64,7 @@ void INTERRUPT_Initialize (void)
     //    URXI: UART1 Receiver
     //    Priority: 1
         IPC2bits.U1RXIP = 1;
+    //    ADI: ADC1 Convert Done
+    //    Priority: 2
+        IPC3bits.AD1IP = 2;
 }

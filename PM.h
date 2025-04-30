@@ -89,10 +89,10 @@ void PM_Initialize();
  
   @Example 
     <code>    
-        PM_LCS();
+        PM_STSLCS();
     </code>
 */
-void PM_LCS();
+void PM_STSLCS();
 
 /**
   @Summary
@@ -647,6 +647,10 @@ bool PM_Check_VL_WAKE(void);
 */
 bool PM_Check_VCHG(void);
 
+
+void PM_STSLVLS_Set_Volt(float);
+void PM_STSLVLW_Set_Volt(float);
+void PM_STSLVGW_Set_Volt(float);
 // live documentation
 
 #ifdef	__cplusplus

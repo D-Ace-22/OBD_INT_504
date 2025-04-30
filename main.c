@@ -1,8 +1,8 @@
 /**
 * @file        main.h
 * @author      Aqib D. Ace 
-* @date        24 April 2025 7:40 PM
-* @version     0.4.15
+* @date        30 April 2025 7:00 PM
+* @version     0.4.30
 */
 
 #include "mcc_generated_files/system.h"
@@ -29,6 +29,7 @@ int main(void)
 //    //setBaudrateCAN(CAN_BAUDRATE_HIGH_SPEED_500K);
 //    setBaudrateCAN(500000);
 //    configureFilterCAN(CAN_MODE_STANDARD_DATA_FRAME_8_DLC, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
+    UART1_Write('\r');
     UART1_Write('\r');
     UART1_Write_String(g_obdConfig.atiId); ///ATI string received on connection
     UART1_Write('\r');

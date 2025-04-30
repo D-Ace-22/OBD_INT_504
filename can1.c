@@ -595,10 +595,9 @@ void configureFilterCAN(uint8_t mode, uint32_t sid, uint32_t eid, uint32_t sid_m
         case(CAN_MODE_EXTENDED_DATA_FRAME_8_DLC):
         {
             C1RXF0SIDbits.EXIDE = 0x1; // accept extended IDs
-            C1RXM0SIDbits.MIDE = 0x0; // dont accept standard ID messages 
-            //TODO ERROR EXPECTED ABOVE
+            C1RXM0SIDbits.MIDE  = 0x1; // 
             // Extracting Standard ID and Extended ID from the given EID
-            sid = (eid >> 18);
+            sid = (eid >> 18) & 0x7ff;
             eid = (eid & 0x3ffff);
             // Extracting masks for SID and EID
             sid_mask = (eid_mask >> 18) & 0x7ff;
@@ -608,7 +607,7 @@ void configureFilterCAN(uint8_t mode, uint32_t sid, uint32_t eid, uint32_t sid_m
             // Configuration of mask and filter registers for Extended ID
             C1RXM1SID = (sid_mask << 5) | ((eid_mask >> 16) & 0x03);
             C1RXM1EID = eid_mask & 0xffff;
-            C1RXF2SID = ((sid) << 5) | (0x0A) | ((eid >> 16) & 0x03);
+            C1RXF2SID = ((sid) << 5) | (0x08) | ((eid >> 16) & 0x03);
             C1RXF2EID = eid & 0xffff;
 
             // Assigning the filter to a buffer
@@ -926,7 +925,7 @@ bool canReceive(uint8_t mode, uint8_t *data, uint8_t *datalen, uint16_t timeout)
     {
         if (chk4TimeoutSYSTIM(timer, timeout) == SYSTIM_TIMEOUT) {
             C1RXFUL1bits.RXFUL10 = 0; // Clear the transmission request bit.
-            UART1_Write_String("\n\rNOT CONNECTED");
+            UART1_Write_String1("\n\rNOT CONNECTED");
             return 1; // Return 1 to indicate a timeout occurred.
         }
     }
@@ -955,7 +954,7 @@ bool canReceive(uint8_t mode, uint8_t *data, uint8_t *datalen, uint16_t timeout)
                 sprintf(canbuff,"\r%08lX",(uint32_t)ecan1MsgBuf[10][0]<<16 & 0x1FFC0000 |
                                         (uint32_t)ecan1MsgBuf[10][1]<<6  & 0x3FFC0 |
                                         (uint32_t)ecan1MsgBuf[10][2]>>10 & 0x3f);
-                UART1_Write_String(canbuff);
+                UART1_Write_String1(canbuff);
                 if(g_obdInfo.formatProperties.ats == 1)
                 {
                     UART1_Write(' ');
@@ -973,7 +972,7 @@ bool canReceive(uint8_t mode, uint8_t *data, uint8_t *datalen, uint16_t timeout)
             if (g_obdInfo.formatProperties.ath == 1)
             {
                 sprintf(canbuff,"\r%03X",ecan1MsgBuf[10][0]>>2);
-                UART1_Write_String(canbuff);
+                UART1_Write_String1(canbuff);
                 if(g_obdInfo.formatProperties.ats == 1)
                 {
                     UART1_Write(' ');

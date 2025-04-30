@@ -7,7 +7,7 @@
 
 #define FUART  20267500UL  
 char backupBuffer[100];
-
+char TXbuffer[60];
 void UART1_Initialize(uint32_t baudrate)
 {
     IEC0bits.U1TXIE = 0;
@@ -79,7 +79,7 @@ uint8_t UART1_Read(void)
     }
     else
     {
-        while(!(U1STAbits.URXDA == 1)); //&& (TMR1_SoftwareCounterGet() < g_obdInfo.uartTimeout))
+        while(!(U1STAbits.URXDA == 1)) //&& (TMR1_SoftwareCounterGet() < g_obdInfo.uartTimeout))
         {
             PM_Manage_Power();
         }
@@ -170,9 +170,27 @@ void UART1_Write_String(const char *str)
         U1TXREG = *str; // Send the current character
         str++; // Move to the next character
     }
+    UART1_Write('\r');
+    if(getLFStatus())
+    {
+        UART1_Write('\n');
+    }
     setLED(LED_ID_HOST,LED_STATE_OFF);
 }
-
+void UART1_Write_String1(const char *str)
+{
+    setLED(LED_ID_HOST,LED_STATE_ON);
+    while (*str != '\0') // Loop until the null terminator
+    {
+        while (U1STAbits.UTXBF == 1) // Wait if the transmit buffer is full
+        {
+            // Optional: Add a timeout here if necessary
+        }
+        U1TXREG = *str; // Send the current character
+        str++; // Move to the next character
+    }
+    setLED(LED_ID_HOST,LED_STATE_OFF);
+}
 bool UART1_IsRxReady(void)
 {
     return U1STAbits.URXDA;
