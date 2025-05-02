@@ -473,7 +473,7 @@ uint8_t getConfigIDGPIO(GPIO_CONFIG config)
     uint8_t k = 0;
     for(k = 0; k < GPIO_CONFIG_CNT; k++)
     {
-        if(strcmp(c_GPIO_CONFIG[k],config.ioConfig) == 0)
+        if(strcmp((char*)c_GPIO_CONFIG[k],(char*)config.ioConfig) == 0)
         {
             break;
         }
@@ -485,7 +485,7 @@ uint8_t getConfigIDGPIOType(GPIO_CONFIG config)
     uint8_t k = 0;
     for(k = 0; k < GPIO_CONFIG_CNT; k++)
     {
-        if(strcmp(c_GPIO_CONFIG[k],config.ioTypeConfig) == 0)
+        if(strcmp((char*)c_GPIO_CONFIG[k],(char*)config.ioTypeConfig) == 0)
         {
             break;
         }

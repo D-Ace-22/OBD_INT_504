@@ -858,7 +858,7 @@ void canTransmit(uint8_t data[], uint8_t len)
         if (chk4TimeoutSYSTIM(timer, 1000) == SYSTIM_TIMEOUT) 
         {   
             C1TR01CONbits.TXREQ0 = 0x0; // Clear the transmission request bit
-            return 1; // Return 1 to indicate a timeout occurred.
+            return; // Return 1 to indicate a timeout occurred.
         }
     }
 }
@@ -951,9 +951,9 @@ bool canReceive(uint8_t mode, uint8_t *data, uint8_t *datalen, uint16_t timeout)
 //            c = ecan1MsgBuf[10][2]>>10 & 0x3f;
             if (g_obdInfo.formatProperties.ath == 1)
             {
-                sprintf(canbuff,"\r%08lX",(uint32_t)ecan1MsgBuf[10][0]<<16 & 0x1FFC0000 |
-                                        (uint32_t)ecan1MsgBuf[10][1]<<6  & 0x3FFC0 |
-                                        (uint32_t)ecan1MsgBuf[10][2]>>10 & 0x3f);
+                sprintf(canbuff,"\r%08lX",((uint32_t)ecan1MsgBuf[10][0]<<16 & 0x1FFC0000) |
+                                        ((uint32_t)ecan1MsgBuf[10][1]<<6  & 0x3FFC0) |
+                                        ((uint32_t)ecan1MsgBuf[10][2]>>10 & 0x3f));
                 UART1_Write_String1(canbuff);
                 if(g_obdInfo.formatProperties.ats == 1)
                 {
@@ -1162,4 +1162,3 @@ void getErrorCountCAN(uint8_t * rx, uint8_t * tx) {
     return;
 }
 #endif
-

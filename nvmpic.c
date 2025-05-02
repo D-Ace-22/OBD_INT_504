@@ -9,6 +9,64 @@
 #include "mcc_generated_files/system.h"
 #include "mcc_generated_files/uart1.h"
 
+enum
+{
+    PROGRAMMABLE_PARAMETERS_TYPE_P = 0x00,
+    PROGRAMMABLE_PARAMETERS_TYPE_R,
+    PROGRAMMABLE_PARAMETERS_TYPE_D,
+    PROGRAMMABLE_PARAMETERS_TYPE_I,
+} PROGRAMMABLE_PARAMETERS_TYPE;
+const uint8_t c_def_programmable_parameters[48][3] = 
+{
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0x19,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0x01,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_I},
+    {0xF1,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0x09,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_I},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_I},
+    {0x00,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0x0A,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0x23,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_P},
+    {0x0D,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0x5A,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0x0D,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_I},
+    {0x00,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0x00,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0xF4,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_I},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0x0A,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0x92,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0x00,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_I},
+    {0x28,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_I},
+    {0x0A,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0x0A,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0x00,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0x00,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0x00,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0xff,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0xFF,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0x04,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_D},
+    {0x02,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0xE0,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0x04,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0x80,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+    {0x0A,0xFF,PROGRAMMABLE_PARAMETERS_TYPE_R},
+};
 
 void delay2_ms(uint16_t ms) {
     for (uint16_t i = 0; i < ms; i++) {
@@ -33,12 +91,12 @@ static void FlashError()
     while (1) 
     { }
 }
-
-static void MiscompareError()
-{
-    while (1) 
-    { }
-}
+//
+//static void MiscompareError()
+//{
+//    while (1) 
+//    { }
+//}
 void getAddress(void)
 {
     flash_storage_address = FLASH_GetErasePageAddress((uint32_t)&flashTestPage[0]);
@@ -333,49 +391,49 @@ void configurePPs(char* argument)
         }
 }
 
-void printAllSaved(void)
-{
-    getAddress();
-    // read the flash words to verify the data
-    for (int i = 0; i < 52 ; i++)
-    {
-        read_PPdata[(i*3)+0] = FLASH_ReadWord24(flash_storage_address + (i*2) + 68)>>16 & 0xFF;
-        read_PPdata[(i*3)+1] = FLASH_ReadWord24(flash_storage_address + (i*2) + 68)>>8  & 0xFF;
-        read_PPdata[(i*3)+2] = FLASH_ReadWord24(flash_storage_address + (i*2) + 68)     & 0xFF;
-    }
-    char TXbuf[30];
-    UART1_Write_String("\r\nUART1 baudrate: ");
-    for (int i = 0 ; i<12 ;i++) //4 words 12 bytes
-    {
-        TXbuf[i]=read_PPdata[i];
-    }
-    UART1_Write_String(TXbuf); 
-    UART1_Write_String("\r\nSaved ATI device ID String: ");
-    for (int i = 12 ; i<48 ;i++)//12 words 36 bytes
-    {
-        TXbuf[i-12]=read_PPdata[i];
-    }
-    UART1_Write_String(TXbuf);
-    UART1_Write_String("\r\nSaved Hardware ID device ID String: ");
-    for (int i = 48 ; i<96 ;i++)//16 words 48 bytes
-    {
-        TXbuf[i-48]=read_PPdata[i];
-    }
-    UART1_Write_String(TXbuf);
-    UART1_Write_String("\r\nSaved STS@1 description device ID String: ");
-    for (int i = 96 ; i<144 ;i++)//16 words 48 bytes
-    {
-        TXbuf[i-96]=read_PPdata[i];
-    }
-    UART1_Write_String(TXbuf);
-    UART1_Write_String("\r\nSaved AT@3 description device ID String: ");
-    for (int i = 144 ; i<156 ;i++)//16 words 48 bytes
-    {
-        TXbuf[i-144]=read_PPdata[i];
-    }
-    UART1_Write_String(TXbuf);
-    
-}
+//void printAllSaved(void)
+//{
+//    getAddress();
+//    // read the flash words to verify the data
+//    for (int i = 0; i < 52 ; i++)
+//    {
+//        read_PPdata[(i*3)+0] = FLASH_ReadWord24(flash_storage_address + (i*2) + 68)>>16 & 0xFF;
+//        read_PPdata[(i*3)+1] = FLASH_ReadWord24(flash_storage_address + (i*2) + 68)>>8  & 0xFF;
+//        read_PPdata[(i*3)+2] = FLASH_ReadWord24(flash_storage_address + (i*2) + 68)     & 0xFF;
+//    }
+//    char TXbuf[30];
+//    UART1_Write_String("\r\nUART1 baudrate: ");
+//    for (int i = 0 ; i<12 ;i++) //4 words 12 bytes
+//    {
+//        TXbuf[i]=read_PPdata[i];
+//    }
+//    UART1_Write_String(TXbuf); 
+//    UART1_Write_String("\r\nSaved ATI device ID String: ");
+//    for (int i = 12 ; i<48 ;i++)//12 words 36 bytes
+//    {
+//        TXbuf[i-12]=read_PPdata[i];
+//    }
+//    UART1_Write_String(TXbuf);
+//    UART1_Write_String("\r\nSaved Hardware ID device ID String: ");
+//    for (int i = 48 ; i<96 ;i++)//16 words 48 bytes
+//    {
+//        TXbuf[i-48]=read_PPdata[i];
+//    }
+//    UART1_Write_String(TXbuf);
+//    UART1_Write_String("\r\nSaved STS@1 description device ID String: ");
+//    for (int i = 96 ; i<144 ;i++)//16 words 48 bytes
+//    {
+//        TXbuf[i-96]=read_PPdata[i];
+//    }
+//    UART1_Write_String(TXbuf);
+//    UART1_Write_String("\r\nSaved AT@3 description device ID String: ");
+//    for (int i = 144 ; i<156 ;i++)//16 words 48 bytes
+//    {
+//        TXbuf[i-144]=read_PPdata[i];
+//    }
+//    UART1_Write_String(TXbuf);
+//    
+//}
 void printSaved(char* command)
 {
     getAddress();
@@ -442,56 +500,56 @@ void printSaved(char* command)
 //   return (uint32_t)read_data[i];
 //}
     
-static void PageWritexample()
-{
-    uint32_t flash_storage_address,flashOffset;
-    bool result;
-    uint32_t readData;
-
-    // Get flash page aligned address of flash reserved above for this test.
-    flash_storage_address = FLASH_GetErasePageAddress((uint32_t)&flashTestPage[0]);
-
-
-    FLASH_Unlock(FLASH_UNLOCK_KEY);
-    
-    // ------------------------------------------
-    // Fill a page of memory with data.  
-    // ------------------------------------------
-    
-    // Erase the page of flash at this address
-    result = FLASH_ErasePage(flash_storage_address);
-    if (result == false)
-    {
-        FlashError();
-    }
-  
-    // Program flash with a data pattern.  For the data pattern we will use the index 
-    // into the flash as the data.
-    for (flashOffset= 0U; flashOffset< FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS; flashOffset += 4U)
-    {
-        result = FLASH_WriteDoubleWord24(flash_storage_address+flashOffset, flashOffset, flashOffset+2U);
-        if (result == false)
-        {
-            FlashError();
-        }   
-    }
-
-    // Clear Key for NVM Commands so accidental call to flash routines will not corrupt flash
-    FLASH_Lock();
-
-    
-    // Verify the flash data is correct.  If it's not branch to error loop.
-    // The data in the flash is the offset into the flash page.
-    for (flashOffset= 0U; flashOffset< FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS; flashOffset += 2U)
-    {
-        readData = FLASH_ReadWord24(flash_storage_address+flashOffset);
-        if (readData != flashOffset )
-        {
-            MiscompareError();
-        }   
-    }
-
-}
+//static void PageWritexample()
+//{
+//    uint32_t flash_storage_address,flashOffset;
+//    bool result;
+//    uint32_t readData;
+//
+//    // Get flash page aligned address of flash reserved above for this test.
+//    flash_storage_address = FLASH_GetErasePageAddress((uint32_t)&flashTestPage[0]);
+//
+//
+//    FLASH_Unlock(FLASH_UNLOCK_KEY);
+//    
+//    // ------------------------------------------
+//    // Fill a page of memory with data.  
+//    // ------------------------------------------
+//    
+//    // Erase the page of flash at this address
+//    result = FLASH_ErasePage(flash_storage_address);
+//    if (result == false)
+//    {
+//        FlashError();
+//    }
+//  
+//    // Program flash with a data pattern.  For the data pattern we will use the index 
+//    // into the flash as the data.
+//    for (flashOffset= 0U; flashOffset< FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS; flashOffset += 4U)
+//    {
+//        result = FLASH_WriteDoubleWord24(flash_storage_address+flashOffset, flashOffset, flashOffset+2U);
+//        if (result == false)
+//        {
+//            FlashError();
+//        }   
+//    }
+//
+//    // Clear Key for NVM Commands so accidental call to flash routines will not corrupt flash
+//    FLASH_Lock();
+//
+//    
+//    // Verify the flash data is correct.  If it's not branch to error loop.
+//    // The data in the flash is the offset into the flash page.
+//    for (flashOffset= 0U; flashOffset< FLASH_ERASE_PAGE_SIZE_IN_PC_UNITS; flashOffset += 2U)
+//    {
+//        readData = FLASH_ReadWord24(flash_storage_address+flashOffset);
+//        if (readData != flashOffset )
+//        {
+//            MiscompareError();
+//        }   
+//    }
+//
+//}
 
 
 void FlashDemo()
@@ -594,7 +652,6 @@ uint8_t loadCustomConfigurationOBD(uint8_t reason) {
             size = size + (16 - residue);
         }
         uint8_t *ptr = (uint8_t *) &g_obdConfig;
-        uint16_t n = 0;
         baddr = flash_storage_address;
         for (k = 0; k < size/3; k++) {
             tmp = FLASH_ReadWord24(baddr);
@@ -923,8 +980,8 @@ uint8_t restoreCustomConfigurationOBD(void) {
     g_obdConfig.levelChangeVoltage.isActive = 1;
     g_obdConfig.levelChangeVoltage.triggerLevel = 0.75;
     g_obdConfig.levelChangeVoltage.triggerTime = 750;
-    strcpy(g_obdConfig.descriptionString, "SCANTOOL.NET LLC");
-    strcpy(g_obdConfig.atiId, ELM327_VERSION_ID);
+    strcpy((char *)g_obdConfig.descriptionString, "SCANTOOL.NET LLC");
+    strcpy((char *)g_obdConfig.atiId, ELM327_VERSION_ID);
     g_obdOtpConfig.hardwareIdFlag = 0xff;
     g_obdConfig.pwrCtrlPinPolarity = 0x00; // Active LOW
     g_obdConfig.extSleepPinPolarity = 0x00;
@@ -955,7 +1012,6 @@ uint8_t loadOtpConfigurationOBD(void) {
         size = size + (16 - residue);
     }
     uint8_t * ptr = (uint8_t *) & g_obdOtpConfig;
-    uint16_t n = 0;
     baddr =flash_storage_address2;
     for (k = 0; k < size/3; k++) {
             tmp = FLASH_ReadWord24(baddr);
@@ -1099,5 +1155,4 @@ void saveOnFlash(void)
     }
 
     FLASH_Lock();
-    return 0;
 }

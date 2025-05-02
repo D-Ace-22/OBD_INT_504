@@ -9,11 +9,14 @@
 #include "string.h"
 #include "stdlib.h"
 #include "stdio.h"
+#include "uart1.h"
 #include <libpic30.h>
 #include "parser.h"
 #include "../PM.h"
 #include "gpios.h"
 #include "../led.h"
+#include "../nvmpic.h"
+#include "../commands.h"
 
 #ifndef SYSTEM_H
 #define	SYSTEM_H

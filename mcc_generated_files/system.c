@@ -80,10 +80,10 @@
 #include "system_types.h"
 #include "interrupt_manager.h"
 #include "traps.h"
-#include "uart1.h"
 #include "tmr1.h"
+#include "../can1.h"
+#include "../delay.h"
 #include "adc1.h"
-
 
 
 
@@ -96,7 +96,6 @@ void SYSTEM_Initialize(void)
     initCAN();
     INTERRUPT_GlobalEnable();
     SYSTEM_CORCONModeOperatingSet(CORCON_MODE_PORVALUES);
-    initDefaultAT();
     TMR1_Initialize();
     initSYSTIM();
     ADC1_Initialize();

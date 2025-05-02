@@ -3,7 +3,7 @@
 #define	__CAN_H
 
 #include <xc.h> // include processor files - each processor file is guarded.  
-
+#include "stdbool.h"
 #define FCAN    20267500UL
 #define BITRATE 250000UL  
 #define NTQ     10  // 10 Time Quanta in a Bit Time
@@ -115,6 +115,7 @@ extern volatile canRingBufferInfo_t g_canRingBufferInfo;
 #define CAN_FUNCTIONS_INTERFACE
 
 #ifdef CAN_FUNCTIONS_INTERFACE
+
 void initCAN(void);
 uint8_t txMessageCAN(uint32_t sid, uint32_t eid, uint8_t mode, uint8_t * data, uint8_t size, uint16_t timeout);
 uint8_t txRemoteCAN(uint32_t sid, uint32_t eid, uint8_t mode, uint16_t timeout);
@@ -126,6 +127,9 @@ void flushBufferCAN(void);
 void printMessageCAN(uint8_t buffer);
 void configureFilterCAN(uint8_t mode, uint32_t sid, uint32_t eid, uint32_t sid_mask, uint32_t eid_mask);
 void getErrorCountCAN(uint8_t * rx, uint8_t * tx);
+void iso_tp_send(uint32_t sid, uint32_t eid, uint8_t mode, uint8_t data[], uint16_t size, uint16_t timeout);
+bool iso_tp_receive(uint8_t mode, uint8_t* data, uint8_t* size, uint16_t timeout ,uint32_t sid, uint32_t eid);
+bool canReceive(uint8_t mode, uint8_t *data, uint8_t *datalen, uint16_t timeout);
 #endif
 
 void setCANTimConReg(uint32_t timeValue);

@@ -51,6 +51,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #ifdef __cplusplus  // Provide C++ Compatibility
 
@@ -126,7 +127,7 @@ void UART1_ReadString(char *buffer, uint16_t maxLength);
     byte - data to be written
 */
 void UART1_Write(uint8_t byte);
-void UART1_Write_String(const char *str);
+void UART1_Write_String(char *str);
 void UART1_Write_String1(const char *str);
 /**
   @Description

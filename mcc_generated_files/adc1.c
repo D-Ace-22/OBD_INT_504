@@ -7,8 +7,11 @@
 
 #include <xc.h>
 #include <stdint.h>
-#include "ADC1.h"
+#include "adc1.h"
 #include "../PM.h"
+
+
+uint16_t ADC_Step;
 
 void ADC1_Initialize ( void )
 {

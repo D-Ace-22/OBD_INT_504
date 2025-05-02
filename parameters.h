@@ -9,6 +9,8 @@
 
 #include <xc.h> 
 #include "stdbool.h"
+#include "string.h"
+#include "stdio.h"
 #include "can1.h"
 void disableEcho(void);
 void enableEcho(void);
@@ -16,15 +18,12 @@ bool getEchoStatus(void);
 void disableLF(void);
 void enableLF(void);
 bool getLFStatus(void);
-void initDefaultAT(void);
-void calibrateVoltage(char* argument);
 void readADCvolts(char* adcVolts, char* precession);
-uint16_t readADCSteps(void);
 void saveCallibratedValues(void);
 uint8_t readSavedCalibrationStatus(void);
-void setAllSettoDefault(void);
 uint8_t getProtocol(void);
 uint8_t loadDefaultConfigurationOBD(void);
+void SetCanPin(uint8_t protocol);
 
 #define ELM327_VERSION_ID                       "ELM327 v1.4b"
 #define OBD_VERSION_ID                          "STN2120 v5.6.5"

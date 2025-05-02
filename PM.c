@@ -10,8 +10,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <p33EP256GP506.h>
-#include "xc.h"
 
 #include "PM.h"
 #include "mcc_generated_files/uart1.h"
@@ -21,7 +19,11 @@
 #include "commands.h"
 
 // Section of functions
-
+char CTRL_MODE[20], LAST_SLEEP_TRIG[5], LAST_WAKE_TRIG[5], VL_SLEEP_SYMBOL, VL_WAKE_SYMBOL, VCHG_SYMBOL;
+uint16_t UART_SLEEP_TIM, UART_WAKE_TIM_L, UART_WAKE_TIM_H, VL_SLEEP_TIM, VL_WAKE_TIM, VCHG_WAKE_TIM, EXT_SLEEP_TIM, EXT_WAKE_TIM, VL_SLEEP_STEPS, VL_WAKE_STEPS, VCHG_WAKE_STEPS;
+float VL_SLEEP_VOLT, VL_WAKE_VOLT, VCHG_WAKE_VOLT;
+bool MASTER_EN, UART_ALERT, PWR_CTRL, UART_SLEEP, UART_WAKE, EXT_INPUT, EXT_SLEEP, EXT_WAKE, VL_SLEEP, VL_WAKE, VCHG_WAKE, STSLXP_VAL, UART_INACTIVITY_ALERT, VL_WAKE_CONVERT, VCHG_CONVERT, VL_SLEEP_CONVERT;
+ 
 void PM_Initialize(){
     TRISAbits.TRISA8 = 0;   // Set RA8 (PWR_CTRL) pin as output.
     TRISCbits.TRISC2 = 1;   // Set RC2 (EXT SLEEP) pin as input
@@ -87,41 +89,41 @@ void PM_Initialize(){
 }
 
 void PM_STSLCS(){
-    char line[40] = "", subline[10] = "", symbols[10] = "";
-    snprintf(line, 40, "CTRL MODE:  %s", CTRL_MODE);
+    char line[60] = "", subline[10] = "", symbols[10] = "";
+    sprintf(line,"CTRL MODE:  %s", CTRL_MODE);
     UART1_Write_String(line);
-    snprintf(line, 40, "PWR_CTRL:   LOW POWER = %s", PWR_CTRL?"HIGH":"LOW");
+    sprintf(line,"PWR_CTRL:   LOW POWER = %s", PWR_CTRL?"HIGH":"LOW");
     UART1_Write_String(line);
-    snprintf(line, 40, "UART SLEEP: %s,  %d s", UART_SLEEP?"ON":"OFF", UART_SLEEP_TIM);
+    sprintf(line,"UART SLEEP: %s,  %d s", UART_SLEEP?"ON":"OFF", UART_SLEEP_TIM);
     UART1_Write_String(line);
-    snprintf(line, 40, "UART WAKE:  %s,  %d-%d us", UART_WAKE?"ON":"OFF", UART_WAKE_TIM_L, UART_WAKE_TIM_H);
+    sprintf(line,"UART WAKE:  %s,  %d-%d us", UART_WAKE?"ON":"OFF", UART_WAKE_TIM_L, UART_WAKE_TIM_H);
     UART1_Write_String(line);
-    snprintf(line, 40, "EXT INPUT:  %s = SLEEP", EXT_INPUT?"HIGH":"LOW");
+    sprintf(line,"EXT INPUT:  %s = SLEEP", EXT_INPUT?"HIGH":"LOW");
     UART1_Write_String(line);
-    snprintf(line, 40, "EXT SLEEP:  %s, %s FOR %d ms", EXT_SLEEP? "ON": "OFF", STSLXP_VAL? "HIGH": "LOW", EXT_SLEEP_TIM);
+    sprintf(line,"EXT SLEEP:  %s, %s FOR %d ms", EXT_SLEEP? "ON": "OFF", STSLXP_VAL? "HIGH": "LOW", EXT_SLEEP_TIM);
     UART1_Write_String(line);
-    snprintf(line, 40, "EXT WAKE:   %s, %s FOR %d ms", EXT_WAKE? "ON": "OFF", STSLXP_VAL? "LOW": "HIGH", EXT_WAKE_TIM);
+    sprintf(line,"EXT WAKE:   %s, %s FOR %d ms", EXT_WAKE? "ON": "OFF", STSLXP_VAL? "LOW": "HIGH", EXT_WAKE_TIM);
     UART1_Write_String(line);
     symbols[0] = VL_SLEEP_SYMBOL;
     if(VL_SLEEP_CONVERT){
-        snprintf(subline, 10, "%.2f", VL_SLEEP_VOLT);
+        sprintf(subline,"%.2f", VL_SLEEP_VOLT);
         symbols[1] = PM_Is_Voltage_Valid(VL_SLEEP_VOLT)?'\0':'!';
     }else{
-        snprintf(subline, 10, "%#X", VL_SLEEP_STEPS);
+        sprintf(subline,"%#X", VL_SLEEP_STEPS);
         symbols[1]='\0';
     }
-    snprintf(line, 40, "VL SLEEP:   %s, %s%sV FOR %d s", VL_SLEEP?"ON":"OFF", symbols, subline, VL_SLEEP_TIM);
+    sprintf(line,"VL SLEEP:   %s, %s%sV FOR %d s", VL_SLEEP?"ON":"OFF", symbols, subline, VL_SLEEP_TIM);
     UART1_Write_String(line);
     subline[0]='\0';
     symbols[0] = VL_WAKE_SYMBOL;
     if(VL_WAKE_CONVERT){
-        snprintf(subline, 10, "%.2f", VL_WAKE_VOLT);
+        sprintf(subline,"%.2f", VL_WAKE_VOLT);
         symbols[1] = PM_Is_Voltage_Valid(VL_WAKE_VOLT)?'\0':'!';
     }else{
-        snprintf(subline, 10, "%#X", VL_WAKE_STEPS);
+        sprintf(subline,"%#X", VL_WAKE_STEPS);
         symbols[1]='\0';
     }
-    snprintf(line, 40, "VL WAKE:    %s, %s%sV FOR %d s", VL_WAKE?"ON":"OFF", symbols, subline, VL_WAKE_TIM);
+    sprintf(line,"VL WAKE:    %s, %s%sV FOR %d s", VL_WAKE?"ON":"OFF", symbols, subline, VL_WAKE_TIM);
     UART1_Write_String(line);
     subline[0]='\0';
     uint8_t ind = 0;
@@ -134,14 +136,14 @@ void PM_STSLCS(){
             symbols[0]='\0';
     }
     if(VCHG_CONVERT){
-        snprintf(subline, 10, "%.2f", VCHG_WAKE_VOLT);
+        sprintf(subline,"%.2f", VCHG_WAKE_VOLT);
         symbols[ind] = PM_Is_Voltage_Valid(VCHG_WAKE_VOLT)?'\0':'!';
         symbols[ind+1]='\0';
     }else{
-        snprintf(subline, 10, "%#X", VCHG_WAKE_STEPS);
+        sprintf(subline,"%#X", VCHG_WAKE_STEPS);
         symbols[ind] = '\0';
     }
-    snprintf(line, 40, "VCHG WAKE:  %s, %s%sV IN %d ms", VCHG_WAKE?"ON":"OFF", symbols, subline, VCHG_WAKE_TIM);
+    sprintf(line,"VCHG WAKE:  %s, %s%sV IN %d ms", VCHG_WAKE?"ON":"OFF", symbols, subline, VCHG_WAKE_TIM);
     UART1_Write_String(line);
 }
 
@@ -252,7 +254,7 @@ void PM_STSLVGW_Set_Volt(float volt){
 }
 
 bool PM_Is_Voltage_Valid(float volt){
-    return 0 <= volt < ((float)g_obdInfo.voltageCalibration)/1000;
+    return (0 <= volt) && (volt < ((float)g_obdInfo.voltageCalibration)/1000);
 }
 
 bool PM_Get_Inactivity_trig(){
@@ -299,7 +301,7 @@ void PM_Set_Wake_Trig(char* trig){
 
 bool PM_Check_Reset_Recent_Sleep(){;
     if(RCONbits.SLEEP == 1){
-        if(UART_WAKE && (UART_WAKE_TIM_L <= (64/g_obdInfo.uartBaudrate)*1000 <= UART_WAKE_TIM_H)){
+        if(UART_WAKE && (   (UART_WAKE_TIM_L <= (64/g_obdInfo.uartBaudrate)*1000) && ((64/g_obdInfo.uartBaudrate)*1000 <= UART_WAKE_TIM_H)     )){
             RCONbits.SLEEP = 0;
             return true;
         }

@@ -71,13 +71,8 @@ uint8_t loadDefaultConfigurationOBD(void) {
     g_obdInfo.obdFlowcontrolDataFlag = 0;
     g_obdInfo.obdFlowcontrolHeaderFlag = 0;
     g_obdInfo.obdTransmissionTimeout = 1000;
-    strcpy(g_obdInfo.powerControlMode,"NATIVE");
+    strcpy((char*)g_obdInfo.powerControlMode,"NATIVE");
     return 0;
-}
-
-void initDefaultAT(void)
-{
-    strcpy(ELM327_VERSION, "ELM327 v1.4b");
 }
 
 void disableEcho(void)
@@ -104,15 +99,6 @@ bool getLFStatus(void)
 {
     return g_obdInfo.linefeedState;
 }
-void calibrateVoltage(char* argument)
-{
-    stvcalrun = true;
-    uint32_t volts;
-    uint32_t offset;
-    sscanf(argument, "%lf,%lf", &volts, &offset);
-    voltage_calibration = volts;
-    voltage_offset = offset;
-}
 void readADCvolts(char* adcVolts, char* precession)
 {
     //read the ANALOG_IN pin here and return the actual  volts
@@ -120,10 +106,6 @@ void readADCvolts(char* adcVolts, char* precession)
     //uint8_t precess = strtoul(precession, NULL, 10);
     //sprintf(adcVolts,"%u.",analog_in_voltage);
     
-}
-uint16_t readADCSteps(void)
-{
-    //read the ANALOG_IN pin here and return the ADC steps
 }
 
 void saveCallibratedValues(void)
@@ -149,12 +131,7 @@ uint8_t readSavedCalibrationStatus(void)
         return 0;
     }
 }
-void setAllSettoDefault(void)
-{
-    loadDefaultConfigurationOBD();
-    //loadCustomConfigurationOBD(PROGRAMMABLE_PARAMETERS_TYPE_D);  //TODO: add D type
-    loadCustomConfigurationOBD();
-}
+
 uint8_t getProtocol(void)
 {
     return g_obdConfig.protocol;

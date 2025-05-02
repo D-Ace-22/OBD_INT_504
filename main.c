@@ -1,8 +1,8 @@
 /**
 * @file        main.h
 * @author      Aqib D. Ace 
-* @date        30 April 2025 7:00 PM
-* @version     0.4.30
+* @date        02 May 2025 12:30 PM
+* @version     0.4.30 
 */
 
 #include "mcc_generated_files/system.h"
@@ -14,7 +14,7 @@ void delay_ms(unsigned int ms)
 {
     while (ms--) 
     {
-        __delay32(20000000UL / 1000);
+         __delay32(20000000UL / 1000);
     }
 }
 
@@ -31,7 +31,7 @@ int main(void)
 //    configureFilterCAN(CAN_MODE_STANDARD_DATA_FRAME_8_DLC, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
     UART1_Write('\r');
     UART1_Write('\r');
-    UART1_Write_String(g_obdConfig.atiId); ///ATI string received on connection
+    UART1_Write_String((char*)g_obdConfig.atiId); ///ATI string received on connection
     UART1_Write('\r');
     //restoreDefaultPParameters();
     //writeToNVM("STS@1","SCANTOOL.NET LLC");

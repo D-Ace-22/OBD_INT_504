@@ -287,7 +287,7 @@ void processSTCommand(char *command)
             UART1_Write_String("OK");
             PM_STSLXP(command[6]=='1'?true:false);
         }else{
-            UART1_Write("?");
+            UART1_Write('?');
         }
     }
     else if(strncmp(command, "STSLPCP", 7) == 0)
@@ -428,8 +428,8 @@ void processSTCommand(char *command)
     }
     else if(strncmp(command, "STSLVG", 6) == 0){
         char val1[10]="";
-        uint16_t index = 6;
-        for(index; command[index] != '\0'; index++){
+        uint16_t index;
+        for(index = 6; command[index] != '\0'; index++){
             val1[index-6] = command[index];
         }
         if(strcmp(val1, "ON")==0 || strcmp(val1, "OFF")==0){
@@ -498,8 +498,8 @@ void processSTCommand(char *command)
     }
     else if(strncmp(command, "STSLVL", 6) == 0){
         char val1[10]="", val2[10]="";
-        uint16_t index = 6;
-        for(index; command[index] != '\0' && command[index] != ','; index++){
+        uint16_t index;
+        for(index = 6; command[index] != '\0' && command[index] != ','; index++){
             val1[index-6] = command[index];
         }
         for(uint16_t index2 = index + 1; command[index2] != '\0'; index2++){
@@ -516,8 +516,8 @@ void processSTCommand(char *command)
     else if(strncmp(command, "STSLU", 5) == 0){
         
         char val1[10]="", val2[10]="";
-        uint16_t index = 5;
-        for(index; command[index] != '\0' && command[index] != ','; index++){
+        uint16_t index;
+        for(index = 5; command[index] != '\0' && command[index] != ','; index++){
             val1[index-5] = command[index];
         }
         for(uint16_t index2 = index + 1; command[index2] != '\0'; index2++){
@@ -536,7 +536,7 @@ void processSTCommand(char *command)
         //Print device hardware ID string (e.g., ?OBDLink r1.7?)
         if (g_obdOtpConfig.hardwareIdFlag == 0)
         {
-            UART1_Write_String(g_obdOtpConfig.hardwareId);
+            UART1_Write_String((char*)g_obdOtpConfig.hardwareId);
         }
         else
         {
@@ -563,7 +563,7 @@ void processSTCommand(char *command)
         }
         else if(atiLen > 0 && atiLen < 32)
         {
-            strcpy(stsatiId, stsatiStr);
+            strcpy((char*)stsatiId, stsatiStr);
             UART1_Write_String("OK");
             g_obdInfo.atiIdFlag = 1;
         }
@@ -585,7 +585,7 @@ void processSTCommand(char *command)
             if (g_obdOtpConfig.hardwareIdFlag != 0x00) 
             {
                 g_obdOtpConfig.hardwareIdFlag = 0x00;
-                strcpy(g_obdOtpConfig.hardwareId,stsdiStr);
+                strcpy((char*)g_obdOtpConfig.hardwareId,stsdiStr);
                 updateOtpConfigurationOBD();
                 UART1_Write_String("OK");
             }
@@ -617,7 +617,7 @@ void processSTCommand(char *command)
         }
         else if (stsat1Len > 0)
         {
-          strcpy(g_obdConfig.descriptionString,stsat1Str);
+          strcpy((char*)g_obdConfig.descriptionString,stsat1Str);
           //UART1_Write_String(stsat1Str);
           UART1_Write_String("OK");
           updateCustomConfigurationOBD();
@@ -643,9 +643,6 @@ void processSTCommand(char *command)
         }
         else if (voltCalLen > 0)
         {
-           uint16_t value[2];
-           uint16_t k;
-           uint16_t p = 0;
            ParsedData voltCal = parseString(voltCalStr,',');
 //         UART1_Write_String("\r\nVal1:");
 //         UART1_Write_String(voltCal.values[0]);
@@ -1605,7 +1602,7 @@ void processSTCommand(char *command)
          * linked command STCTR
          */ 
         uint32_t stctrrValue = getCANTimConReg();
-        sprintf(TXbuffer,"%06X",stctrrValue);
+        sprintf(TXbuffer,"%06X",(unsigned int)stctrrValue);
         UART1_Write_String(TXbuffer);   
     }
     else if (strncmp(command, "STCTR",5) == 0) 
@@ -1723,7 +1720,7 @@ void processSTCommand(char *command)
                 }
                 else if (stfbalen0%2 != 0 && stfbalen0 <= 10)
                 {
-                    char* tmp;
+                    char tmp[15] = {0};
                     tmp[0] = '0';
                     for (int i = 0 ; i < stfbalen0 ; i++)
                     {
@@ -1815,7 +1812,7 @@ void processSTCommand(char *command)
                 }
                 else if (stffcalen0%2 != 0 && stffcalen0 <= 10)
                 {
-                    char* tmp;
+                    char tmp[15] = {0};
                     tmp[0] = '0';
                     for (int i = 0 ; i < stffcalen0 ; i++)
                     {
@@ -1911,7 +1908,7 @@ void processSTCommand(char *command)
                 }
                 else if (stfpalen0%2 != 0 && stfpalen0 <= 10)
                 {
-                    char* tmp;
+                    char tmp[15] = {0};
                     tmp[0] = '0';
                     for (int i = 0 ; i < stfpalen0 ; i++)
                     {
@@ -2544,7 +2541,9 @@ void processATCommand(char *command)
            * Message filter
            * Timeouts*/
         delayMs(10);
-        setAllSettoDefault();
+        loadDefaultConfigurationOBD();
+        //loadCustomConfigurationOBD(PROGRAMMABLE_PARAMETERS_TYPE_D);  //TODO: add D type
+        loadCustomConfigurationOBD(1);
         delayMs(10);
         UART1_Write_String("OK");
         }
@@ -2589,7 +2588,7 @@ void processATCommand(char *command)
     else if  (strcmp(command, "ATI") == 0)
     {
         //print ELM327 version ID string
-        UART1_Write_String(g_obdConfig.atiId);
+        UART1_Write_String((char*)g_obdConfig.atiId);
      
     }
     else if  (strncmp(command, "ATL", 3) == 0)
@@ -2640,24 +2639,24 @@ void processATCommand(char *command)
         delayMs(10);
         UART1_Write('\r');
         UART1_Write('\r');
-        UART1_Write_String(g_obdConfig.atiId);
+        UART1_Write_String((char*)g_obdConfig.atiId);
     }
     else if  (strcmp(command, "ATZ") == 0)
     {
         //Reset device
         if (g_obdInfo.atiIdFlag == 1)
         {
-            strcpy(g_obdConfig.atiId, stsatiId);
+            strcpy((char*)g_obdConfig.atiId, (char*)stsatiId);
             updateCustomConfigurationOBD();
         }
         
-        delay_ms(300);
+        delayMs(300);
         asm("reset");
     }
     else if  (strcmp(command, "AT@1") == 0)
     {
         //Display device description saved by STS@1
-        strcpy(TXbuffer,g_obdConfig.descriptionString);
+        strcpy(TXbuffer,(char*)g_obdConfig.descriptionString);
         UART1_Write_String(TXbuffer);
     }
     else if  (strcmp(command, "AT@2") == 0)
@@ -2669,7 +2668,7 @@ void processATCommand(char *command)
         } 
         else 
         {
-            UART1_Write_String(g_obdOtpConfig.deviceIdentifier);
+            UART1_Write_String((char*)g_obdOtpConfig.deviceIdentifier);
         }
     }
     else if  (strncmp(command, "AT@3", 4) == 0)
@@ -3062,7 +3061,6 @@ void processATCommand(char *command)
             uint32_t atcfValue = strtoul(atcfStr, NULL, 16);
             if (atcfArgLen == 3) 
             {
-                uint32_t sid;
                 g_obdInfo.canSidFilter = atcfValue & 0x7FF;
                 configureFilterCAN(g_obdInfo.canMode, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
                 UART1_Write_String("OK"); 
@@ -3096,7 +3094,6 @@ void processATCommand(char *command)
             uint32_t atcmValue = strtoul(atcmStr, NULL, 16);
             if (atcmArgLen == 3) 
             {
-                uint32_t sid;
                 g_obdInfo.canSidFilterMask = atcmValue & 0x7FF;
                 configureFilterCAN(g_obdInfo.canMode, g_obdInfo.canSidFilter, g_obdInfo.canEidFilter, g_obdInfo.canSidFilterMask, g_obdInfo.canEidFilterMask);
                 UART1_Write_String("OK"); 
@@ -3235,7 +3232,7 @@ void processATCommand(char *command)
                 }
                 else
                 {
-                    uint8_t tmp[3];
+                    char tmp[3];
                     uint32_t stfcsd;
                     uint8_t data[5]={0};
                     uint8_t n=0;

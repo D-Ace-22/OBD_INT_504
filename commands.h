@@ -16,6 +16,7 @@ void processOBDRequest(char *command);//process OBD request
 void loadDefaultOnWarmReset(void); //load default values on warm reset
 void resetAllNVMToDefault(void); //reset all value to default on NVM
 void transmitArbMsg(char *command);
+void obdRequestHandle(char *command);
 #ifdef	__cplusplus
 extern "C" {
 #endif /* __cplusplus */

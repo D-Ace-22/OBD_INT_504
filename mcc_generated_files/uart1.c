@@ -158,7 +158,7 @@ void UART1_Write(uint8_t txData)
     U1TXREG = txData;    // Write the data byte to the USART.
 }
 
-void UART1_Write_String(const char *str)
+void UART1_Write_String(char *str)
 {
     setLED(LED_ID_HOST,LED_STATE_ON);
     while (*str != '\0') // Loop until the null terminator

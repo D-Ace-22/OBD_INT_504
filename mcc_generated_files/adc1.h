@@ -8,14 +8,10 @@
 #ifndef __ADC1_H__
 #define __ADC1_H__
 
-    #ifdef __cplusplus   // Provide C++ Compatability
-extern "C"
-{
-    #endif
 
     // Section: Parameters
     
-    static uint16_t ADC_Step;
+    extern uint16_t ADC_Step;
     
     // Section: Interface Routines
     
